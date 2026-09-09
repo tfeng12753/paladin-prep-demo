@@ -1,0 +1,517 @@
+<title>Student Brief</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700;9..144,800&display=swap">
+<style>
+  :root {
+    --primary: #2563eb;
+    --primary-light: #eff6ff;
+    /* Separate from --primary: white text on light mode's --primary
+       already passes (5.17:1), but dark mode's --primary is a pale
+       link-blue meant to read as *text* on a dark page -- white text on
+       top of it as a solid button fill only measures 2.54:1. This stays
+       equal to --primary in light mode and gets its own darker value in
+       the dark-mode blocks below. */
+    --primary-solid: #2563eb;
+    --accent: #c9a227;
+    --accent-dark: #a8850f;
+    /* Separate from --accent-dark: that token is tuned for *fills*
+       (button backgrounds, hover states) which can afford to be a
+       lighter, brighter gold -- as text on white it only measures
+       3.48:1, under the 4.5:1 small text needs. This is the same hue,
+       darkened until it clears that bar, used for the eyebrow label and
+       the wordmark's gold "Prep". */
+    --accent-text: #8a6d0c;
+    --on-accent: #0f172a;
+    --dark: #0f172a;
+    --text: #1e293b;
+    --text-muted: #64748b;
+    --border: #e2e8f0;
+    --bg: #ffffff;
+    --bg-alt: #f8fafc;
+    --card: #ffffff;
+    --success-bg: #f0fdf4;
+    --success-text: #166534;
+    --warning-bg: #fef3c7;
+    --warning-text: #92400e;
+    --danger-bg: #fef2f2;
+    --danger-text: #b91c1c;
+    --shadow: 0 4px 8px rgba(15,23,42,.06), 0 2px 4px rgba(15,23,42,.04);
+    --shadow-lg: 0 16px 32px rgba(15,23,42,.10), 0 4px 10px rgba(15,23,42,.06);
+    --radius: .75rem;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --primary: #60a5fa;
+      --primary-light: #16233c;
+      --primary-solid: #2f6cd0;
+      --accent: #e0bd3a;
+      --accent-dark: #f2cf4d;
+      --accent-text: #f2cf4d;
+      --on-accent: #0f172a;
+      --dark: #f1f5f9;
+      --text: #e2e8f0;
+      --text-muted: #94a3b8;
+      --border: #29394f;
+      --bg: #0b1220;
+      --bg-alt: #131d30;
+      --card: #101a2c;
+      --success-bg: rgba(34,197,94,.12);
+      --success-text: #6ee7a3;
+      --warning-bg: rgba(245,158,11,.14);
+      --warning-text: #fbbf60;
+      --danger-bg: rgba(239,68,68,.14);
+      --danger-text: #fb9c9c;
+      --shadow: 0 4px 8px rgba(0,0,0,.3), 0 2px 4px rgba(0,0,0,.2);
+      --shadow-lg: 0 16px 32px rgba(0,0,0,.45), 0 4px 10px rgba(0,0,0,.3);
+    }
+  }
+  :root[data-theme="dark"] {
+    --primary: #60a5fa;
+    --primary-light: #16233c;
+    --primary-solid: #2f6cd0;
+    --accent: #e0bd3a;
+    --accent-dark: #f2cf4d;
+    --accent-text: #f2cf4d;
+    --on-accent: #0f172a;
+    --dark: #f1f5f9;
+    --text: #e2e8f0;
+    --text-muted: #94a3b8;
+    --border: #29394f;
+    --bg: #0b1220;
+    --bg-alt: #131d30;
+    --card: #101a2c;
+    --success-bg: rgba(34,197,94,.12);
+    --success-text: #6ee7a3;
+    --warning-bg: rgba(245,158,11,.14);
+    --warning-text: #fbbf60;
+    --danger-bg: rgba(239,68,68,.14);
+    --danger-text: #fb9c9c;
+    --shadow: 0 4px 8px rgba(0,0,0,.3), 0 2px 4px rgba(0,0,0,.2);
+    --shadow-lg: 0 16px 32px rgba(0,0,0,.45), 0 4px 10px rgba(0,0,0,.3);
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Fraunces', Georgia, 'Times New Roman', serif;
+    line-height: 1.6;
+  }
+  .wrap { max-width: 760px; margin: 0 auto; padding: 3rem 1.5rem 5rem; }
+
+  /* ── Header ─────────────────────────────────────────────── */
+  .eyebrow {
+    font-size: .74rem; font-weight: 700; letter-spacing: .09em; text-transform: uppercase;
+    color: var(--accent-text); margin-bottom: .6rem;
+  }
+  .wordmark { font-size: 1.05rem; font-weight: 700; color: var(--dark); margin-bottom: 1.4rem; }
+  .wordmark span { color: var(--accent-text); }
+  h1 {
+    font-size: clamp(1.8rem, 4vw, 2.4rem); font-weight: 800; letter-spacing: -.02em;
+    margin: 0 0 .9rem; color: var(--dark); text-wrap: balance;
+  }
+  .lede { font-size: 1.02rem; color: var(--text-muted); max-width: 62ch; margin: 0 0 .6rem; }
+  .lede strong { color: var(--text); font-weight: 600; }
+  .scope-note {
+    font-size: .84rem; color: var(--text-muted); max-width: 62ch; margin: 0 0 2.2rem;
+    padding-top: .9rem; border-top: 1px solid var(--border);
+  }
+
+  /* ── Toggle ─────────────────────────────────────────────── */
+  .toggle {
+    display: inline-flex; border: 1.5px solid var(--border); border-radius: 100px; padding: .2rem;
+    margin-bottom: 1.75rem; background: var(--bg-alt);
+  }
+  .toggle button {
+    font-family: inherit; font-size: .84rem; font-weight: 700; padding: .5rem 1.15rem; border-radius: 100px;
+    border: none; background: none; color: var(--text-muted); cursor: pointer; transition: background .15s, color .15s;
+  }
+  .toggle button.active { background: var(--primary-solid); color: #fff; }
+
+  /* ── Cards / shared ─────────────────────────────────────── */
+  .card {
+    background: var(--card); border: 1px solid var(--border); border-radius: var(--radius);
+    box-shadow: var(--shadow); padding: 1.6rem 1.75rem;
+  }
+  section[hidden] { display: none; }
+
+  /* ── Student view ───────────────────────────────────────── */
+  .progress-row { display: flex; align-items: center; gap: .5rem; margin-bottom: 1.1rem; }
+  .progress-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--border); transition: background .2s, transform .2s; }
+  .progress-dot.done { background: var(--accent); }
+  .progress-dot.current { background: var(--primary); transform: scale(1.3); }
+  .progress-label { font-size: .78rem; color: var(--text-muted); margin-left: .3rem; font-variant-numeric: tabular-nums; }
+
+  .q-subject-row { display: flex; align-items: center; gap: .6rem; margin-bottom: .7rem; flex-wrap: wrap; }
+  .q-subject { font-size: .74rem; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; color: var(--primary); }
+  .q-diff {
+    display: inline-flex; align-items: center; font-size: .66rem; font-weight: 700; text-transform: uppercase;
+    letter-spacing: .04em; padding: .2rem .55rem; border-radius: 100px;
+  }
+  .q-diff.easy   { background: var(--success-bg); color: var(--success-text); }
+  .q-diff.medium { background: var(--warning-bg); color: var(--warning-text); }
+  .q-diff.hard   { background: var(--danger-bg);  color: var(--danger-text); }
+  .q-text { font-size: 1.12rem; line-height: 1.55; color: var(--dark); margin: 0 0 1.4rem; text-wrap: balance; }
+  .q-text.passage { font-size: 1rem; }
+
+  .choices { display: flex; flex-direction: column; gap: .6rem; }
+  .choice {
+    display: flex; align-items: flex-start; gap: .75rem; width: 100%; text-align: left;
+    padding: .75rem .9rem; border: 1.5px solid var(--border); border-radius: .6rem;
+    background: var(--bg); font-family: inherit; font-size: .94rem; color: var(--text); cursor: pointer;
+    transition: border-color .15s, background .15s;
+  }
+  .choice:hover:not(:disabled) { border-color: var(--primary); background: var(--primary-light); }
+  .choice:disabled { cursor: default; }
+  .choice-label {
+    flex-shrink: 0; width: 1.6rem; height: 1.6rem; border-radius: 50%; border: 1.5px solid var(--border);
+    display: flex; align-items: center; justify-content: center; font-size: .8rem; font-weight: 700; color: var(--text-muted);
+  }
+  .choice.is-correct { border-color: var(--success-text); background: var(--success-bg); }
+  .choice.is-correct .choice-label { border-color: var(--success-text); background: var(--success-text); color: #fff; }
+  .choice.is-wrong { border-color: var(--danger-text); background: var(--danger-bg); }
+  .choice.is-wrong .choice-label { border-color: var(--danger-text); background: var(--danger-text); color: #fff; }
+
+  .feedback { margin-top: 1.25rem; padding-top: 1.1rem; border-top: 1px solid var(--border); }
+  .feedback-verdict { font-weight: 700; margin-bottom: .3rem; }
+  .feedback-verdict.correct { color: var(--success-text); }
+  .feedback-verdict.wrong { color: var(--danger-text); }
+  .feedback-rationale { font-size: .9rem; color: var(--text-muted); margin: 0 0 1rem; }
+  .next-btn {
+    font-family: inherit; font-size: .88rem; font-weight: 700; color: #fff; background: var(--primary-solid);
+    border: none; border-radius: .55rem; padding: .65rem 1.3rem; cursor: pointer;
+  }
+  .next-btn:hover { filter: brightness(1.08); }
+
+  .done-card { text-align: center; padding: 2.4rem 1.75rem; }
+  .done-card .done-icon { color: var(--accent-dark); margin-bottom: .9rem; }
+  .done-card h2 { font-size: 1.3rem; margin: 0 0 .5rem; color: var(--dark); }
+  .done-card p { color: var(--text-muted); font-size: .92rem; max-width: 42ch; margin: 0 auto 1.4rem; }
+  .switch-btn {
+    font-family: inherit; font-size: .88rem; font-weight: 700; color: var(--on-accent); background: var(--accent);
+    border: none; border-radius: .55rem; padding: .7rem 1.4rem; cursor: pointer;
+  }
+  .switch-btn:hover { background: var(--accent-dark); }
+
+  /* ── Tutor view ─────────────────────────────────────────── */
+  .brief-name { font-size: 1.25rem; font-weight: 800; color: var(--dark); margin: 0 0 .2rem; }
+  .brief-sub { font-size: .82rem; color: var(--text-muted); margin: 0 0 1.5rem; }
+
+  .stat-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: .75rem; margin-bottom: 1.6rem; }
+  .stat-tile { background: var(--bg-alt); border-radius: var(--radius); padding: 1rem .75rem; text-align: center; }
+  .stat-tile-num { font-size: 1.55rem; font-weight: 800; color: var(--dark); font-variant-numeric: tabular-nums; line-height: 1; }
+  .stat-tile-label { font-size: .72rem; color: var(--text-muted); margin-top: .35rem; }
+
+  .pace-row { display: flex; flex-wrap: wrap; gap: .5rem; margin-bottom: 1.7rem; }
+  .pace-badge {
+    display: inline-flex; align-items: center; gap: .4rem; font-size: .78rem; font-weight: 700;
+    padding: .35rem .75rem; border-radius: 100px;
+  }
+  .pace-badge.good { background: var(--success-bg); color: var(--success-text); }
+  .pace-badge.ok   { background: var(--warning-bg); color: var(--warning-text); }
+  .pace-badge.slow { background: var(--danger-bg);  color: var(--danger-text); }
+
+  .section-title { font-size: .82rem; font-weight: 700; color: var(--dark); text-transform: uppercase; letter-spacing: .04em; margin: 0 0 .9rem; }
+
+  .mastery-row { display: flex; align-items: center; gap: .7rem; padding: .5rem 0; border-bottom: 1px solid var(--border); }
+  .mastery-row:last-child { border-bottom: none; }
+  .mastery-label { flex: 1; min-width: 0; }
+  .mastery-name { font-size: .88rem; color: var(--text); }
+  .mastery-meta { font-size: .74rem; color: var(--text-muted); margin-top: .1rem; }
+  .mastery-track { width: 120px; height: 7px; border-radius: 100px; background: var(--border); flex-shrink: 0; overflow: hidden; }
+  .mastery-fill { height: 100%; border-radius: 100px; transition: width .7s cubic-bezier(.34,1.1,.64,1); }
+  .mastery-fill.weak   { background: linear-gradient(90deg, #f87171, #ef4444); }
+  .mastery-fill.medium { background: linear-gradient(90deg, #fbbf24, #f59e0b); }
+  .mastery-fill.strong { background: linear-gradient(90deg, #4ade80, #22c55e); }
+  .mastery-pct { font-size: .78rem; color: var(--text-muted); width: 34px; text-align: right; flex-shrink: 0; font-variant-numeric: tabular-nums; }
+
+  .focus-callout {
+    display: flex; gap: .9rem; align-items: flex-start; margin-top: 1.7rem;
+    background: var(--primary-light); border: 1px solid var(--primary); border-radius: var(--radius);
+    padding: 1.1rem 1.3rem;
+  }
+  .focus-icon { flex-shrink: 0; color: var(--primary); margin-top: .1rem; }
+  .focus-title { font-size: .78rem; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; color: var(--primary); margin-bottom: .25rem; }
+  .focus-name { font-size: 1.05rem; font-weight: 700; color: var(--dark); margin-bottom: .3rem; }
+  .focus-note { font-size: .85rem; color: var(--text-muted); }
+
+  /* ── Footer ─────────────────────────────────────────────── */
+  footer {
+    max-width: 62ch; margin: 3rem auto 0; padding-top: 1.5rem; border-top: 1px solid var(--border);
+    font-size: .8rem; color: var(--text-muted); text-align: center;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .mastery-fill, .progress-dot { transition: none; }
+  }
+  @media (max-width: 520px) {
+    .stat-row { grid-template-columns: repeat(3, 1fr); gap: .5rem; }
+    .stat-tile { padding: .8rem .4rem; }
+    .card { padding: 1.3rem 1.25rem; }
+  }
+</style>
+
+<div class="wrap">
+
+  <div class="eyebrow">Portfolio Preview</div>
+  <div class="wordmark">Paladin <span>Prep</span></div>
+  <h1>See what a tutor sees.</h1>
+  <p class="lede">
+    I built a full SAT tutoring platform, and if there's one feature that actually defines it, it's this one —
+    <strong>the Student Brief</strong>, the panel a tutor pulls up before every session. Answer a few questions
+    like a student would, then switch over and see the same data from the tutor's side.
+  </p>
+  <p class="scope-note">
+    Normally a tutor burns the first chunk of a session just figuring out where a student actually stands.
+    The Student Brief skips that — they open it already knowing, before the student even joins.
+  </p>
+
+  <div class="toggle" role="tablist" aria-label="View as">
+    <button type="button" id="tabStudent" class="active" role="tab" aria-selected="true" onclick="switchView('student')">Answer as a student</button>
+    <button type="button" id="tabTutor" role="tab" aria-selected="false" onclick="switchView('tutor')">See the tutor's view</button>
+  </div>
+
+  <section id="studentView">
+    <div class="progress-row" id="progressRow"></div>
+    <div class="card" id="studentCard"></div>
+  </section>
+
+  <section id="tutorView" hidden>
+    <div class="card" id="tutorCard"></div>
+  </section>
+
+  <footer>
+    Built by Travis Feng. Happy to walk through the rest of the product directly — this page is just the one
+    piece I could safely show on its own.
+  </footer>
+
+</div>
+
+<script>
+  // ── Icons (no external icon library — CSP only permits Google Fonts as
+  //    a stylesheet, and Font Awesome's own stylesheet doesn't qualify) ──
+  const ICON_CHECK = '<svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M3 8.5L6.2 11.7L13 4.5" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+  const ICON_X = '<svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M3.5 3.5L12.5 12.5M12.5 3.5L3.5 12.5" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>';
+  const ICON_TARGET = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.8"/><circle cx="12" cy="12" r="5" stroke="currentColor" stroke-width="1.8"/><circle cx="12" cy="12" r="1.4" fill="currentColor"/></svg>';
+  const ICON_CLOCK = '<svg width="12" height="12" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8.5" r="5.7" stroke="currentColor" stroke-width="1.6"/><path d="M8 5.2V8.5L10.3 10" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><path d="M6.3 1.6H9.7" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>';
+
+  function esc(s) { return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
+  // ── Sample skill history — a plausible few weeks of AI Practice before
+  //    today, so the Tutor view already has something real to say the
+  //    moment you switch to it, not an empty shell (see Right Triangles
+  //    below, deliberately the weak point this whole demo is built to surface). ──
+  const SKILLS = [
+    { id: 'linear',      subject: 'Math', name: 'Linear Equations in One Variable',   seeded: { attempts: 8, correct: 7 } },
+    { id: 'systems',     subject: 'Math', name: 'Systems of Two Linear Equations',    seeded: { attempts: 6, correct: 4 } },
+    { id: 'trig',        subject: 'Math', name: 'Right Triangles & Trigonometry',     seeded: { attempts: 5, correct: 1 } },
+    { id: 'transitions', subject: 'Reading & Writing', name: 'Transitions',           seeded: { attempts: 7, correct: 5 } },
+    { id: 'boundaries',  subject: 'Reading & Writing', name: 'Boundaries',            seeded: { attempts: 6, correct: 5 } },
+  ];
+  const PACE_BUDGET = { 'Math': 88, 'Reading & Writing': 65 }; // expected seconds/question, same split the real app uses
+
+  const QUESTIONS = [
+    {
+      skillId: 'linear', subject: 'Math — Linear Equations', difficulty: 'easy',
+      text: 'If 3x − 7 = 20, what is the value of x?',
+      choices: [ {t:'7'}, {t:'9', correct:true}, {t:'11'}, {t:'13'} ],
+      rationale: 'Add 7 to both sides to get 3x = 27, then divide by 3: x = 9.',
+    },
+    {
+      skillId: 'systems', subject: 'Math — Systems of Equations', difficulty: 'medium',
+      text: 'If x + y = 10 and x − y = 4, what is the value of x?',
+      choices: [ {t:'3'}, {t:'5'}, {t:'7', correct:true}, {t:'9'} ],
+      rationale: 'Add the two equations: 2x = 14, so x = 7.',
+    },
+    {
+      skillId: 'trig', subject: 'Math — Right Triangles & Trigonometry', difficulty: 'hard',
+      text: 'A right triangle has one leg of length 6 and a hypotenuse of length 10. What is the length of the other leg?',
+      choices: [ {t:'6'}, {t:'7'}, {t:'8', correct:true}, {t:'9'} ],
+      rationale: 'This is a 6-8-10 right triangle, a scaled 3-4-5: 6² + 8² = 36 + 64 = 100 = 10².',
+    },
+    {
+      skillId: 'transitions', subject: 'Reading & Writing — Transitions', difficulty: 'easy',
+      text: 'Many students find calculus intimidating at first. ______ with consistent practice, most come to find it manageable. Which choice completes the text with the most logical transition?',
+      choices: [ {t:'For example,'}, {t:'However,', correct:true}, {t:'Similarly,'}, {t:'Therefore,'} ],
+      rationale: '"However" signals the contrast between the initial intimidation and the opposite outcome that follows.',
+    },
+    {
+      skillId: 'boundaries', subject: 'Reading & Writing — Boundaries', difficulty: 'hard', passage: true,
+      text: 'Which choice completes the text with the most conventional punctuation?',
+      choices: [
+        {t:"The museum's new exhibit which features artifacts from the region's earliest settlements opens to the public next month."},
+        {t:"The museum's new exhibit, which features artifacts from the region's earliest settlements, opens to the public next month.", correct:true},
+        {t:"The museum's new exhibit: which features artifacts from the region's earliest settlements, opens to the public next month."},
+        {t:"The museum's new exhibit which features artifacts from the region's earliest settlements, opens to the public next month."},
+      ],
+      rationale: 'The clause "which features artifacts…" is nonrestrictive — the exhibit is already identified — so it takes a comma on both sides.',
+    },
+  ];
+
+  let current = 0;
+  let shownAt = Date.now();
+  let answeredState = new Array(QUESTIONS.length).fill(null); // null | true | false
+  const live = {}; // skillId -> { attempts, correct, paceSec: [] }
+
+  function switchView(view) {
+    document.getElementById('tabStudent').classList.toggle('active', view === 'student');
+    document.getElementById('tabTutor').classList.toggle('active', view === 'tutor');
+    document.getElementById('tabStudent').setAttribute('aria-selected', view === 'student');
+    document.getElementById('tabTutor').setAttribute('aria-selected', view === 'tutor');
+    document.getElementById('studentView').hidden = view !== 'student';
+    document.getElementById('tutorView').hidden = view !== 'tutor';
+    if (view === 'tutor') renderTutor();
+  }
+
+  function renderProgress() {
+    const row = document.getElementById('progressRow');
+    const dots = QUESTIONS.map((_, i) => {
+      const cls = answeredState[i] !== null ? 'done' : i === current ? 'current' : '';
+      return `<div class="progress-dot ${cls}"></div>`;
+    }).join('');
+    const answeredCount = answeredState.filter(a => a !== null).length;
+    row.innerHTML = dots + `<span class="progress-label">${answeredCount} of ${QUESTIONS.length} answered</span>`;
+  }
+
+  function renderQuestion() {
+    renderProgress();
+    const card = document.getElementById('studentCard');
+    if (current >= QUESTIONS.length) {
+      card.innerHTML = `
+        <div class="done-card">
+          <div class="done-icon">${ICON_TARGET.replace('width="20" height="20"', 'width="30" height="30"')}</div>
+          <h2>That's all five.</h2>
+          <p>Now for the interesting part: what a tutor would see before your next session, based on how you just did.</p>
+          <button type="button" class="switch-btn" onclick="switchView('tutor')">See the tutor's view</button>
+        </div>`;
+      return;
+    }
+    const q = QUESTIONS[current];
+    shownAt = Date.now();
+    card.innerHTML = `
+      <div class="q-subject-row">
+        <span class="q-subject">${esc(q.subject)}</span>
+        <span class="q-diff ${q.difficulty}">${q.difficulty}</span>
+      </div>
+      <p class="q-text${q.passage ? ' passage' : ''}">${esc(q.text)}</p>
+      <div class="choices" id="choicesWrap">
+        ${q.choices.map((c, i) => `
+          <button type="button" class="choice" data-i="${i}" onclick="answer(${i})">
+            <span class="choice-label">${String.fromCharCode(65 + i)}</span>
+            <span>${esc(c.t)}</span>
+          </button>`).join('')}
+      </div>
+      <div id="feedbackWrap"></div>`;
+  }
+
+  function answer(i) {
+    const q = QUESTIONS[current];
+    const paceSec = Math.max(1, Math.round((Date.now() - shownAt) / 1000));
+    const correctIdx = q.choices.findIndex(c => c.correct);
+    const isCorrect = i === correctIdx;
+    answeredState[current] = isCorrect;
+
+    if (!live[q.skillId]) live[q.skillId] = { attempts: 0, correct: 0, paceSec: [] };
+    live[q.skillId].attempts += 1;
+    if (isCorrect) live[q.skillId].correct += 1;
+    live[q.skillId].paceSec.push(paceSec);
+
+    document.querySelectorAll('#choicesWrap .choice').forEach((btn, idx) => {
+      btn.disabled = true;
+      if (idx === correctIdx) btn.classList.add('is-correct');
+      else if (idx === i) btn.classList.add('is-wrong');
+    });
+
+    document.getElementById('feedbackWrap').innerHTML = `
+      <div class="feedback">
+        <div class="feedback-verdict ${isCorrect ? 'correct' : 'wrong'}">${isCorrect ? ICON_CHECK + ' Correct' : ICON_X + ' Not quite'}</div>
+        <p class="feedback-rationale">${esc(q.rationale)}</p>
+        <button type="button" class="next-btn" onclick="nextQuestion()">${current === QUESTIONS.length - 1 ? 'See results' : 'Next question'}</button>
+      </div>`;
+    renderProgress();
+  }
+
+  function nextQuestion() {
+    current += 1;
+    renderQuestion();
+  }
+
+  function skillStats(skill) {
+    const seeded = skill.seeded;
+    const l = live[skill.id] || { attempts: 0, correct: 0, paceSec: [] };
+    const attempts = seeded.attempts + l.attempts;
+    const correct = seeded.correct + l.correct;
+    const pct = attempts ? Math.round((correct / attempts) * 100) : 0;
+    return { attempts, correct, pct, livePace: l.paceSec };
+  }
+
+  function renderTutor() {
+    const stats = SKILLS.map(s => ({ skill: s, ...skillStats(s) }));
+    const totalAnswered = stats.reduce((sum, s) => sum + s.attempts, 0);
+    const totalCorrect = stats.reduce((sum, s) => sum + s.correct, 0);
+    const overallAccuracy = totalAnswered ? Math.round((totalCorrect / totalAnswered) * 100) : 0;
+    const assessed = stats.filter(s => s.attempts > 0).length;
+
+    const bySubject = {};
+    stats.forEach(s => {
+      const subj = s.skill.subject;
+      const l = live[s.skill.id];
+      if (l && l.paceSec.length) {
+        (bySubject[subj] = bySubject[subj] || []).push(...l.paceSec);
+      }
+    });
+    const paceBadges = Object.keys(bySubject).map(subject => {
+      const times = bySubject[subject];
+      const avg = Math.round(times.reduce((a, b) => a + b, 0) / times.length);
+      const budget = PACE_BUDGET[subject];
+      const ratio = avg / budget;
+      const cls = ratio <= 1 ? 'good' : ratio <= 1.4 ? 'ok' : 'slow';
+      const label = ratio <= 1 ? 'on pace' : ratio <= 1.4 ? 'a bit slow' : 'well over pace';
+      return `<span class="pace-badge ${cls}">${ICON_CLOCK} ${esc(subject)}: ${label} <span style="font-variant-numeric:tabular-nums">(${avg}s avg)</span></span>`;
+    }).join('');
+
+    const sorted = [...stats].filter(s => s.attempts > 0).sort((a, b) => a.pct - b.pct);
+    const masteryRows = sorted.map(s => {
+      const tier = s.pct < 40 ? 'weak' : s.pct < 75 ? 'medium' : 'strong';
+      return `
+        <div class="mastery-row">
+          <div class="mastery-label">
+            <div class="mastery-name">${esc(s.skill.name)}</div>
+            <div class="mastery-meta">${esc(s.skill.subject)} · ${s.attempts} attempt${s.attempts === 1 ? '' : 's'}</div>
+          </div>
+          <div class="mastery-track"><div class="mastery-fill ${tier}" style="width:${s.pct}%"></div></div>
+          <span class="mastery-pct">${s.pct}%</span>
+        </div>`;
+    }).join('');
+
+    const weakest = sorted[0];
+
+    document.getElementById('tutorCard').innerHTML = `
+      <div class="brief-name">Travis Feng's Student Brief</div>
+      <div class="brief-sub">Last active just now</div>
+
+      <div class="stat-row">
+        <div class="stat-tile"><div class="stat-tile-num">${totalAnswered}</div><div class="stat-tile-label">Questions Answered</div></div>
+        <div class="stat-tile"><div class="stat-tile-num">${overallAccuracy}%</div><div class="stat-tile-label">Overall Accuracy</div></div>
+        <div class="stat-tile"><div class="stat-tile-num">${assessed}/${SKILLS.length}</div><div class="stat-tile-label">Subskills Assessed</div></div>
+      </div>
+
+      ${paceBadges ? `<div class="pace-row">${paceBadges}</div>` : ''}
+
+      <div class="section-title">Weakest Subskills</div>
+      ${masteryRows}
+
+      ${weakest ? `
+      <div class="focus-callout">
+        <div class="focus-icon">${ICON_TARGET}</div>
+        <div>
+          <div class="focus-title">Focus next on</div>
+          <div class="focus-name">${esc(weakest.skill.name)}</div>
+          <div class="focus-note">${weakest.pct}% accuracy over ${weakest.attempts} attempts. A tutor opens the next session already knowing this, instead of guessing where to start.</div>
+        </div>
+      </div>` : ''}
+    `;
+  }
+
+  renderQuestion();
+</script>
