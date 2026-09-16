@@ -1,3 +1,4 @@
+<meta charset="utf-8">
 <title>Student Brief</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700;9..144,800&display=swap">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.11/katex.min.js"></script>
@@ -290,6 +291,15 @@
     overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0;
   }
   .progress-dots { display: flex; align-items: center; gap: .5rem; }
+  .resume-note {
+    font-size: .8rem; color: var(--text-muted); margin: 0 0 .9rem;
+    padding: .5rem .75rem; background: var(--bg-alt); border-radius: .4rem; border: 1px solid var(--border);
+  }
+  .link-btn {
+    font-family: inherit; font-size: inherit; color: var(--primary); background: none; border: none;
+    padding: 0; text-decoration: underline; cursor: pointer;
+  }
+  .link-btn:hover { filter: brightness(1.15); }
   .summary-card { padding: .4rem .2rem; }
   .summary-card h2 { font-size: 1.3rem; margin: .5rem 0 .3rem; color: var(--dark); }
   .summary-sub { font-size: .9rem; color: var(--text-muted); margin: 0 0 1.4rem; }
@@ -390,6 +400,7 @@
   </div>
 
   <section id="studentView">
+    <div id="resumeNote" hidden></div>
     <div class="progress-row" id="progressRow"></div>
     <div class="card" id="studentCard"></div>
   </section>
@@ -401,6 +412,7 @@
   <footer>
     Built by Travis Feng. Happy to walk through the rest of the product directly — this page is just the one
     piece I could safely show on its own.
+    <br><button type="button" class="link-btn" onclick="resetProgress()">Reset practice history</button>
   </footer>
 
 </div>
@@ -1014,6 +1026,7 @@
     slowRatio: 1.4,            // of the per-subject pace budget
     thinEvidence: 0.45,        // confidence below this is flagged, not hidden
   };
+  const STALE_HALF_LIFE = 21; // days until a skill counts as half-forgotten for scheduling
 
   // Seeded history has no per-question detail, so it enters as one block of
   // older, medium-difficulty attempts -- always older than anything answered
@@ -1026,6 +1039,16 @@
     }
     (l ? l.results : []).forEach(r => events.push({ ...r, live: true }));
     return events;
+  }
+
+  // Days since this skill was last practiced by the student. Seeded history has
+  // no timestamps -- it stands in for work done before this device saw it -- so
+  // a skill with no live attempts reads as stale rather than as brand new.
+  function daysSincePractice(skill) {
+    const l = live[skill.id];
+    if (!l || !l.results.length) return null;
+    const newest = Math.max(...l.results.map(r => r.at || 0));
+    return newest ? (Date.now() - newest) / 86400000 : null;
   }
 
   function mastery(skill) {
@@ -1046,6 +1069,7 @@
       liveAttempts: liveEvents.length,
       liveCorrect: liveEvents.filter(e => e.correct).length,
       seededRate: skill.seeded.attempts ? skill.seeded.correct / skill.seeded.attempts : null,
+      staleDays: daysSincePractice(skill),
     };
   }
 
@@ -1066,7 +1090,12 @@
   // 21% one, which is what a tutor reading the list top to bottom expects.
   function priority(skill) {
     const m = mastery(skill);
-    return (1 - m.value) * (0.55 + 0.45 * m.confidence) * (0.85 + 0.15 * (skill.weight || 1));
+    // A skill untouched for weeks is not "known", it is unmeasured: nudge it up
+    // the list so the next session checks rather than assumes. Half of the
+    // nudge is reached at STALE_HALF_LIFE days.
+    const days = m.staleDays;
+    const staleness = days === null ? 0 : 1 - Math.pow(0.5, days / STALE_HALF_LIFE);
+    return (1 - m.value) * (0.55 + 0.45 * m.confidence) * (0.85 + 0.15 * (skill.weight || 1)) * (1 + 0.3 * staleness);
   }
 
   function skillSignals(skill) {
@@ -1075,6 +1104,7 @@
     if (pace && pace.rushedMiss) chips.push({ text: 'missed in under ' + MODEL.rushedSec + 's', tone: 'warn' });
     else if (pace && pace.ratio > MODEL.slowRatio) chips.push({ text: `${pace.avgSec}s vs ${PACE_BUDGET[skill.subject]}s budget`, tone: 'warn' });
     if (m.confidence < MODEL.thinEvidence) chips.push({ text: 'thin evidence' });
+    if (m.staleDays !== null && m.staleDays >= 7) chips.push({ text: `last practiced ${Math.floor(m.staleDays)}d ago` });
     if (m.liveAttempts >= 2 && m.seededRate !== null) {
       const liveRate = m.liveCorrect / m.liveAttempts;
       if (liveRate - m.seededRate >= 0.25) chips.push({ text: 'improving', tone: 'good' });
@@ -1241,6 +1271,98 @@
   let lastSkillId = null;
   let chosenReason = '';
 
+  // ── Saved progress ──────────────────────────────────────────────────────
+  // Without this, a refresh wipes every skill back to its seeded history and
+  // "sessions compound" stops being true. Storage can be unavailable (private
+  // window, blocked site data, file:// in some browsers), so every call is
+  // wrapped: the demo works exactly the same, it just won't remember.
+  const STORE_KEY = 'paladin-prep-demo-v1';
+  const MAX_STORED_RESULTS = 120; // per skill, so one long session can't grow without bound
+  let resumedFrom = null;
+
+  function saveProgress() {
+    try {
+      const trimmed = {};
+      Object.keys(live).forEach(id => {
+        const l = live[id];
+        const results = l.results.slice(-MAX_STORED_RESULTS);
+        trimmed[id] = {
+          attempts: results.length,
+          correct: results.filter(r => r.correct).length,
+          paceSec: results.map(r => r.paceSec),
+          results,
+        };
+      });
+      const hasHistory = Object.values(trimmed).some(l => l.results.length);
+      if (!hasHistory && !carryOver.length) localStorage.removeItem(STORE_KEY);
+      else localStorage.setItem(STORE_KEY, JSON.stringify({ v: 1, savedAt: Date.now(), live: trimmed, carryOver }));
+    } catch (e) { /* storage unavailable or full -- practice continues, unsaved */ }
+  }
+
+  // Anything read back is untrusted: it may be stale, hand-edited, or from a
+  // different version of the question bank.
+  function loadProgress() {
+    let data;
+    try {
+      const raw = localStorage.getItem(STORE_KEY);
+      if (!raw) return null;
+      data = JSON.parse(raw);
+    } catch (e) { return null; }
+    if (!data || data.v !== 1 || typeof data.live !== 'object' || !data.live) return null;
+
+    const clean = {};
+    Object.keys(data.live).forEach(id => {
+      if (!SKILLS.some(s => s.id === id)) return;                 // skill no longer exists
+      const results = Array.isArray(data.live[id].results) ? data.live[id].results : [];
+      const valid = results.filter(r => r && typeof r.correct === 'boolean'
+        && DIFFICULTY_RANK[r.difficulty] !== undefined
+        && Number.isFinite(r.paceSec) && r.paceSec >= 0
+        && Number.isFinite(r.at)).slice(-MAX_STORED_RESULTS);
+      if (!valid.length) return;
+      clean[id] = {
+        attempts: valid.length,
+        correct: valid.filter(r => r.correct).length,
+        paceSec: valid.map(r => r.paceSec),
+        results: valid,
+      };
+    });
+    if (!Object.keys(clean).length) return null;
+
+    const carried = Array.isArray(data.carryOver)
+      ? data.carryOver.filter(i => Number.isInteger(i) && i >= 0 && i < QUESTIONS.length)
+      : [];
+    return { live: clean, carryOver: carried, savedAt: Number.isFinite(data.savedAt) ? data.savedAt : null };
+  }
+
+  function resetProgress() {
+    try { localStorage.removeItem(STORE_KEY); } catch (e) {}
+    Object.keys(live).forEach(id => delete live[id]);
+    carryOver = [];
+    resumedFrom = null;
+    renderResumeNote();
+    switchView('student');
+    startSession();
+  }
+
+  function describeGap(ms) {
+    const days = Math.floor(ms / 86400000);
+    if (days >= 2) return `${days} days ago`;
+    const hours = Math.floor(ms / 3600000);
+    if (hours >= 2) return `${hours} hours ago`;
+    return 'a moment ago';
+  }
+
+  function renderResumeNote() {
+    const el = document.getElementById('resumeNote');
+    if (!el) return;
+    if (!resumedFrom) { el.innerHTML = ''; el.hidden = true; return; }
+    const attempts = Object.values(live).reduce((n, l) => n + l.results.length, 0);
+    el.hidden = false;
+    el.innerHTML = `<p class="resume-note">Picking up where you left off — ${attempts} question${attempts === 1 ? '' : 's'} of your own history,` +
+      ` last practiced ${esc(describeGap(Date.now() - resumedFrom))}.` +
+      ` <button type="button" class="link-btn" onclick="resetProgress()">Start fresh</button></p>`;
+  }
+
   // ── Session shape ───────────────────────────────────────────────────────
   // A session is a short, bounded block rather than the whole bank, because a
   // finite target gets finished and an open-ended list gets abandoned. Two
@@ -1278,6 +1400,7 @@
     // Anything left unsteady last time surfaces in the first few questions.
     retryQueue = carryOver.map((index, n) => ({ index, dueAt: n + 1 }));
     carryOver = [];
+    saveProgress();
     const first = pickNextQuestion();
     current = first.index;
     chosenReason = first.reason;
@@ -1491,7 +1614,7 @@
     live[q.skillId].attempts += 1;
     if (isCorrect) live[q.skillId].correct += 1;
     live[q.skillId].paceSec.push(paceSec);
-    live[q.skillId].results.push({ correct: isCorrect, difficulty: q.difficulty, paceSec });
+    live[q.skillId].results.push({ correct: isCorrect, difficulty: q.difficulty, paceSec, at: Date.now() });
     lastSkillId = q.skillId;
     askedCount += 1;
     sessionLog.push({ index: current, skillId: q.skillId, correct: isCorrect, paceSec, retry: currentIsRetry });
@@ -1520,6 +1643,7 @@
         <button type="button" class="next-btn" onclick="nextQuestion()">${askedCount >= SESSION.length && !retryQueue.length ? 'See session summary' : 'Next question'}</button>
       </div>`;
     renderProgress();
+    saveProgress();
     focusQuietly(document.getElementById('verdict'));
     fillCoachNote(q, i, isCorrect, paceSec);
   }
@@ -1611,5 +1735,14 @@
     `;
   }
 
-  startSession();
+  (function restore() {
+    const saved = loadProgress();
+    if (saved) {
+      Object.assign(live, saved.live);
+      carryOver = saved.carryOver;
+      resumedFrom = saved.savedAt;
+    }
+    renderResumeNote();
+    startSession();
+  })();
 </script>
