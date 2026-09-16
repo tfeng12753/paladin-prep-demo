@@ -1,5 +1,6 @@
 <title>Student Brief</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700;9..144,800&display=swap">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.11/katex.min.js"></script>
 <style>
   :root {
     --primary: #2563eb;
@@ -152,7 +153,57 @@
   .q-diff.medium { background: var(--warning-bg); color: var(--warning-text); }
   .q-diff.hard   { background: var(--danger-bg);  color: var(--danger-text); }
   .q-text { font-size: 1.12rem; line-height: 1.55; color: var(--dark); margin: 0 0 1.4rem; text-wrap: balance; }
-  .q-text.passage { font-size: 1rem; }
+  .q-passage {
+    font-size: 1rem; line-height: 1.65; color: var(--dark); margin: 0 0 1rem;
+    padding: .9rem 1.1rem; background: var(--bg-alt); border-left: 3px solid var(--border); border-radius: .4rem;
+  }
+  .q-passage + .q-text { font-size: 1rem; font-weight: 600; }
+  .q-passage + .q-passage { margin-top: -.4rem; }
+  .q-passage p { margin: 0; }
+  .passage-label { font-size: .8rem; font-weight: 700; letter-spacing: .03em; color: var(--text-muted); margin-bottom: .25rem; }
+  .notes { margin: .5rem 0 0; padding-left: 1.2rem; }
+  .notes li + li { margin-top: .35rem; }
+  /* Fill-in blank: a drawn rule instead of a run of underscores, which some
+     fonts render as a broken dashed line. */
+  .blank {
+    display: inline-block; width: 4.5em; height: 1em; vertical-align: baseline;
+    border-bottom: 1.5px solid currentColor; margin: 0 .15em;
+  }
+  /* KaTeX renders to MathML (no KaTeX stylesheet/fonts needed, which the CSP
+     would block); the browser lays it out with a system math font. */
+  math { font-family: 'STIX Two Math', 'Cambria Math', 'Latin Modern Math', math; font-size: 1.08em; }
+  .math-inline { white-space: nowrap; }
+  msqrt { margin-inline-end: calc(-1 * var(--sqrt-trail, 0em)); }
+  mroot { margin-inline-end: calc(-1 * var(--root-trail, 0em)); }
+  .math-display { display: block; margin: .4rem 0; padding: .15em 0; overflow-x: auto; overflow-y: hidden; }
+  .math-fallback { font-style: italic; }
+  /* Chrome's MathML Core ignores columnalign, so KaTeX's aligned/cases
+     environments need it restated as CSS (Safari/Firefox already honor it). */
+  mtable[columnalign^="right left"] > mtr > mtd:nth-child(odd)  { text-align: right; }
+  mtable[columnalign^="right left"] > mtr > mtd:nth-child(even) { text-align: left; }
+  mtable[columnalign^="left"] > mtr > mtd { text-align: left; }
+  mtable[columnspacing="0em"] > mtr > mtd { padding-inline: 0; }
+
+  /* Figures are inline SVG drawn with currentColor so they follow the theme. */
+  .q-figure { margin: 0 0 1.2rem; color: var(--dark); }
+  .fig-box { position: relative; container-type: inline-size; width: 100%; max-width: var(--fig-max, 230px); margin: 0 auto; }
+  .q-figure svg { display: block; width: 100%; height: auto; }
+  .fig-label { position: absolute; line-height: 1; white-space: nowrap; pointer-events: none; }
+  .fig-label math { font-size: 1em; }
+  .fig-text { font-family: 'Fraunces', Georgia, serif; }
+  .fig-caption { text-align: center; font-size: .86rem; font-weight: 600; color: var(--dark); margin-bottom: .5rem; }
+  .fig-label .math-fallback { font-family: 'STIX Two Math', 'Cambria Math', serif; }
+  .q-text + .table-wrap { margin: -.4rem 0 1.4rem; }
+
+  .table-wrap { overflow-x: auto; margin: .2rem 0 1rem; }
+  .data-table { border-collapse: collapse; font-size: .88rem; font-variant-numeric: tabular-nums; color: var(--text); }
+  .data-table caption { text-align: left; font-size: .8rem; color: var(--text-muted); padding-bottom: .35rem; }
+  .data-table th, .data-table td { padding: .35rem .55rem; border: 1px solid var(--border); text-align: center; white-space: nowrap; }
+  .data-table th { background: var(--bg-alt); font-weight: 600; color: var(--dark); }
+  .data-table tr.row-hit td { background: var(--success-bg); color: var(--success-text); font-weight: 600; }
+  .data-table th[scope="row"] { text-align: left; }
+  .data-table tr.row-total th, .data-table tr.row-total td { font-weight: 700; }
+  .data-table .corner { background: var(--bg-alt); border-color: var(--border); }
 
   .choices { display: flex; flex-direction: column; gap: .6rem; }
   .choice {
@@ -225,6 +276,72 @@
   .mastery-fill.strong { background: linear-gradient(90deg, #4ade80, #22c55e); }
   .mastery-pct { font-size: .78rem; color: var(--text-muted); width: 34px; text-align: right; flex-shrink: 0; font-variant-numeric: tabular-nums; }
 
+  .mastery-chips { display: flex; flex-wrap: wrap; gap: .3rem; margin-top: .25rem; }
+  .chip { font-size: .68rem; padding: .1rem .45rem; border-radius: 100px; background: var(--bg-alt); color: var(--text-muted); border: 1px solid var(--border); }
+  .chip.warn { background: var(--warning-bg); color: var(--warning-text); border-color: transparent; }
+  .chip.good { background: var(--success-bg); color: var(--success-text); border-color: transparent; }
+  .model-note { font-size: .74rem; line-height: 1.5; color: var(--text-muted); margin: .8rem 0 0; }
+  .coach { margin: .9rem 0 1.1rem; padding: .75rem .9rem; background: var(--primary-light); border: 1px solid var(--primary); border-radius: .5rem; }
+  .coach-label { display: flex; align-items: center; gap: .35rem; font-size: .7rem; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; color: var(--primary); margin-bottom: .25rem; }
+  .coach-text { font-size: .9rem; color: var(--text); margin: 0; }
+  .coach.pending .coach-text { color: var(--text-muted); font-style: italic; }
+  .sr-only {
+    position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+    overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0;
+  }
+  .progress-dots { display: flex; align-items: center; gap: .5rem; }
+  .summary-card { padding: .4rem .2rem; }
+  .summary-card h2 { font-size: 1.3rem; margin: .5rem 0 .3rem; color: var(--dark); }
+  .summary-sub { font-size: .9rem; color: var(--text-muted); margin: 0 0 1.4rem; }
+  .summary-note { font-size: .84rem; color: var(--warning-text); background: var(--warning-bg); padding: .5rem .75rem; border-radius: .4rem; margin: .9rem 0 0; }
+  .moved-row { display: flex; align-items: center; justify-content: space-between; gap: .75rem; padding: .45rem 0; border-bottom: 1px solid var(--border); }
+  .moved-row:last-of-type { border-bottom: none; }
+  .moved-name { font-size: .88rem; color: var(--text); }
+  .moved-nums { display: flex; align-items: center; gap: .45rem; font-variant-numeric: tabular-nums; font-size: .85rem; color: var(--text-muted); flex-shrink: 0; }
+  .moved-after { color: var(--dark); font-weight: 700; }
+  .moved-delta { min-width: 2.4rem; text-align: right; font-weight: 700; color: var(--text-muted); }
+  .moved-delta.up { color: var(--success-text); }
+  .moved-delta.down { color: var(--danger-text); }
+  .summary-actions { display: flex; flex-wrap: wrap; gap: .6rem; margin-top: 1.5rem; }
+  .lesson {
+    margin: .9rem 0 0; border: 1px solid var(--border); border-radius: .5rem;
+    background: var(--bg-alt); padding: .6rem .85rem;
+  }
+  .lesson summary { cursor: pointer; font-size: .9rem; font-weight: 600; color: var(--dark); list-style-position: outside; }
+  .lesson summary::marker { color: var(--text-muted); }
+  .lesson-body { font-size: .88rem; line-height: 1.6; color: var(--text); margin: .55rem 0 .15rem; }
+  .lesson-tag {
+    display: inline-block; font-size: .64rem; font-weight: 700; text-transform: uppercase; letter-spacing: .05em;
+    color: var(--accent-text); margin-right: .4rem;
+  }
+  .focus-lesson { font-size: .85rem; color: var(--dark); margin-top: .5rem; padding-top: .5rem; border-top: 1px solid var(--border); }
+  .glossary { margin: .9rem 0 0; padding: .55rem .85rem; border-left: 3px solid var(--accent); background: var(--bg-alt); border-radius: .35rem; }
+  .glossary-row { display: flex; gap: .5rem; font-size: .87rem; line-height: 1.5; }
+  .glossary-row + .glossary-row { margin-top: .25rem; }
+  .glossary dt { font-weight: 700; color: var(--dark); }
+  .glossary dd { margin: 0; color: var(--text-muted); }
+  .why-this {
+    display: flex; align-items: flex-start; gap: .4rem; font-size: .78rem; line-height: 1.45;
+    color: var(--text-muted); margin: 0 0 1rem; padding-bottom: .8rem; border-bottom: 1px dashed var(--border);
+  }
+  .why-this svg { flex-shrink: 0; margin-top: .18rem; color: var(--primary); }
+  .kbd-hint { font-size: .74rem; color: var(--text-muted); margin: .8rem 0 0; }
+  .kbd-hint kbd {
+    font-family: inherit; font-size: .72rem; padding: .05rem .3rem; border-radius: .25rem;
+    border: 1px solid var(--border); background: var(--bg-alt); color: var(--text);
+  }
+  /* A visible ring for keyboard users, without a permanent outline for mouse users. */
+  :is(button, a, [tabindex]):focus-visible {
+    outline: 2.5px solid var(--primary); outline-offset: 2px; border-radius: .4rem;
+  }
+  .q-text:focus-visible, .feedback-verdict:focus-visible { outline-offset: 4px; }
+  @media (prefers-reduced-motion: no-preference) {
+    .choice, .feedback { animation: rise .18s ease-out both; }
+    .choices .choice:nth-child(2) { animation-delay: .02s; }
+    .choices .choice:nth-child(3) { animation-delay: .04s; }
+    .choices .choice:nth-child(4) { animation-delay: .06s; }
+  }
+  @keyframes rise { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
   .focus-callout {
     display: flex; gap: .9rem; align-items: flex-start; margin-top: 1.7rem;
     background: var(--primary-light); border: 1px solid var(--primary); border-radius: var(--radius);
@@ -248,6 +365,7 @@
     .stat-row { grid-template-columns: repeat(3, 1fr); gap: .5rem; }
     .stat-tile { padding: .8rem .4rem; }
     .card { padding: 1.3rem 1.25rem; }
+    .data-table { font-size: .82rem; }
   }
 </style>
 
@@ -293,65 +411,735 @@
   const ICON_CHECK = '<svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M3 8.5L6.2 11.7L13 4.5" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
   const ICON_X = '<svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M3.5 3.5L12.5 12.5M12.5 3.5L3.5 12.5" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>';
   const ICON_TARGET = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.8"/><circle cx="12" cy="12" r="5" stroke="currentColor" stroke-width="1.8"/><circle cx="12" cy="12" r="1.4" fill="currentColor"/></svg>';
+  const ICON_SPARK = '<svg width="12" height="12" viewBox="0 0 16 16" fill="none"><path d="M8 1.6L9.5 6.1L14 7.6L9.5 9.1L8 13.6L6.5 9.1L2 7.6L6.5 6.1L8 1.6Z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg>';
   const ICON_CLOCK = '<svg width="12" height="12" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8.5" r="5.7" stroke="currentColor" stroke-width="1.6"/><path d="M8 5.2V8.5L10.3 10" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><path d="M6.3 1.6H9.7" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>';
 
   function esc(s) { return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
+  // Question content convention: TeX math goes between \( \) inline or
+  // \[ \] on its own line (not $…$, since SAT questions are full of dollar
+  // amounts), and a run of 3+ underscores is a fill-in blank. Everything else
+  // is escaped as text.
+  function renderMath(tex, display) {
+    if (window.katex) {
+      try { return fixMathSpacing(katex.renderToString(tex, { output: 'mathml', displayMode: !!display, throwOnError: false })); } catch (e) {}
+    }
+    // Without KaTeX, show the TeX source with the most common commands spelled
+    // out as their symbols so it still reads (e.g. "40°", "2π", "−4").
+    const plain = tex.replace(/\^\\circ/g, '°').replace(/\\pi\b/g, 'π').replace(/\\cdot\b/g, '·')
+                     .replace(/\\t?frac\{([^{}]*)\}\{([^{}]*)\}/g, '($1)/($2)').replace(/-/g, '−');
+    return `<span class="math-fallback">${esc(plain)}</span>`;
+  }
+  // KaTeX's HTML output handles this spacing itself, but its MathML leaves it
+  // to the browser, and Chrome gets two cases wrong:
+  //  - a unary minus ("= -2x", "(-1)") gets binary-operator spacing ("= − 2x").
+  //    A sign that opens a group or follows another operator or opening
+  //    bracket is a prefix sign, so mark it as one.
+  //  - "\sin A" renders as "sinA": the invisible function-application operator
+  //    after sin/cos/log gets no width. TeX puts a thin space there unless an
+  //    opening bracket follows, so do the same.
+  function fixMathSpacing(html) {
+    const t = document.createElement('template');
+    t.innerHTML = html;
+    t.content.querySelectorAll('mo').forEach(mo => {
+      const prev = mo.previousElementSibling, next = mo.nextElementSibling;
+      if (/^[−+±]$/.test(mo.textContent)) {
+        if (!prev || (prev.localName === 'mo' && !/^[)\]}|!]$/.test(prev.textContent))) mo.setAttribute('form', 'prefix');
+      } else if (mo.textContent === '\u2061') {
+        if (next && !(next.localName === 'mo' && /^[(\[{|]/.test(next.textContent))) mo.setAttribute('rspace', '0.1667em');
+      }
+    });
+    return t.innerHTML;
+  }
+  // Some math fonts (STIX Two Math in Chrome) leave empty space after a
+  // radical, so "√169 = 13" gets a visible gap before the "=". Measure that
+  // once with the font actually in use and cancel exactly that much.
+  (function trimRadicalTrailingSpace() {
+    if (!window.katex) return;
+    const probe = document.createElement('span');
+    probe.style.cssText = 'position:absolute;visibility:hidden;font-size:100px';
+    document.body.appendChild(probe);
+    // [tex, element, CSS variable, which child is the radicand]
+    [['\\sqrt{1}', 'msqrt', '--sqrt-trail', 'lastElementChild'],
+     ['\\sqrt[3]{1}', 'mroot', '--root-trail', 'firstElementChild']].forEach(([tex, tag, cssVar, radicand]) => {
+      probe.innerHTML = katex.renderToString(tex, { output: 'mathml' });
+      const root = probe.querySelector(tag);
+      if (!root || !root[radicand]) return;
+      const extra = root.getBoundingClientRect().right - root[radicand].getBoundingClientRect().right;
+      const em = parseFloat(getComputedStyle(root).fontSize); // math is 1.08em of the probe, so measure its own size
+      if (em && extra > 0.01 * em) document.documentElement.style.setProperty(cssVar, `${(extra / em).toFixed(3)}em`);
+    });
+    probe.remove();
+  })();
+  function richText(s) {
+    return esc(s).replace(/_{3,}/g, '<span class="blank" role="img" aria-label="blank"></span>');
+  }
+  const richCache = new Map();
+  const figureCache = new WeakMap();
+  const tableCache = new WeakMap();
+  function rich(s) {
+    s = String(s);
+    const hit = richCache.get(s);
+    if (hit !== undefined) return hit;
+    const out = richUncached(s);
+    richCache.set(s, out);
+    return out;
+  }
+  function richUncached(s) {
+    // Trailing punctuation stays with inline math so it can't wrap onto a line by itself.
+    const re = /\\\[(.+?)\\\]|\\\((.+?)\\\)([.,;:!?]*)/g;
+    let out = '', last = 0, m;
+    while ((m = re.exec(s))) {
+      out += richText(s.slice(last, m.index));
+      out += m[1] !== undefined
+        ? `<span class="math-display">${renderMath(m[1], true)}</span>`
+        : `<span class="math-inline">${renderMath(m[2])}${esc(m[3])}</span>`;
+      last = re.lastIndex;
+    }
+    return out + richText(s.slice(last));
+  }
+  // Figure data: { svg, alt, caption, maxWidth, labels: [{ tex | text, x, y, anchor, size }] }.
+  // The SVG holds only the shapes; labels are KaTeX laid over it, positioned
+  // in the SVG's own viewBox units (anchor 'c' centers the label on x,y, 'w'
+  // puts its left edge there, 'e' its right edge) and sized in those units too,
+  // so they scale with the drawing exactly as SVG text would.
+  function renderFigure(fig) {
+    const cached = figureCache.get(fig);
+    if (cached) return cached;
+    const [vx, vy, vw, vh] = fig.svg.match(/viewBox="([^"]+)"/)[1].trim().split(/[\s,]+/).map(Number);
+    const labels = (fig.labels || []).map(l => {
+      const shiftX = { c: '-50%', w: '0%', e: '-100%' }[l.anchor || 'c'];
+      const pos = `left:${((l.x - vx) / vw * 100).toFixed(3)}%;top:${((l.y - vy) / vh * 100).toFixed(3)}%;` +
+                  `transform:translate(${shiftX},-50%);font-size:calc(100cqw * ${l.size || 15} / ${vw})`;
+      const content = l.text !== undefined ? `<span class="fig-text">${esc(l.text)}</span>` : renderMath(l.tex);
+      return `<span class="fig-label" style="${pos}">${content}</span>`;
+    }).join('');
+    const html = `<figure class="q-figure">${fig.caption ? `<figcaption class="fig-caption">${esc(fig.caption)}</figcaption>` : ''}<div class="fig-box" role="img" aria-label="${esc(fig.alt)}" style="--fig-max:${fig.maxWidth || 230}px">${fig.svg}${labels}</div></figure>`;
+    figureCache.set(fig, html);
+    return html;
+  }
+  // Table data: { caption, head: [...], rows: [[...]], hit: rowIndex, rowHeader,
+  // footRow }. rowHeader makes each row's first cell a header; footRow marks the
+  // last row as totals. A '' in head renders the blank corner cell. Every
+  // cell goes through rich(), so cells can hold TeX too.
+  function renderTable(t) {
+    const cached = tableCache.get(t);
+    if (cached) return cached;
+    const html = `<div class="table-wrap"><table class="data-table">
+      ${t.caption ? `<caption>${rich(t.caption)}</caption>` : ''}
+      <thead><tr>${t.head.map(h => h === '' ? '<td class="corner"></td>' : `<th scope="col">${rich(h)}</th>`).join('')}</tr></thead>
+      <tbody>${t.rows.map((r, i) => {
+        const cls = [i === t.hit ? 'row-hit' : '', t.footRow && i === t.rows.length - 1 ? 'row-total' : ''].filter(Boolean).join(' ');
+        const cells = r.map((c, j) => t.rowHeader && j === 0 ? `<th scope="row">${rich(c)}</th>` : `<td>${rich(c)}</td>`).join('');
+        return `<tr${cls ? ` class="${cls}"` : ''}>${cells}</tr>`;
+      }).join('')}</tbody>
+    </table></div>`;
+    tableCache.set(t, html);
+    return html;
+  }
 
   // ── Sample skill history — a plausible few weeks of AI Practice before
   //    today, so the Tutor view already has something real to say the
   //    moment you switch to it, not an empty shell (see Right Triangles
   //    below, deliberately the weak point this whole demo is built to surface). ──
   const SKILLS = [
-    { id: 'linear',      subject: 'Math', name: 'Linear Equations in One Variable',   seeded: { attempts: 8, correct: 7 } },
-    { id: 'systems',     subject: 'Math', name: 'Systems of Two Linear Equations',    seeded: { attempts: 6, correct: 4 } },
-    { id: 'trig',        subject: 'Math', name: 'Right Triangles & Trigonometry',     seeded: { attempts: 5, correct: 1 } },
-    { id: 'transitions', subject: 'Reading & Writing', name: 'Transitions',           seeded: { attempts: 7, correct: 5 } },
-    { id: 'boundaries',  subject: 'Reading & Writing', name: 'Boundaries',            seeded: { attempts: 6, correct: 5 } },
+    { id: 'linear',      subject: 'Math', name: 'Linear Equations in One Variable',   seeded: { attempts: 8, correct: 7 } , weight: 1.2 },
+    { id: 'linfunc',     subject: 'Math', name: 'Linear Functions',                   seeded: { attempts: 7, correct: 5 } , weight: 1.1 },
+    { id: 'systems',     subject: 'Math', name: 'Systems of Two Linear Equations',    seeded: { attempts: 6, correct: 4 } , weight: 1.0 },
+    { id: 'equiv',       subject: 'Math', name: 'Equivalent Expressions',             seeded: { attempts: 4, correct: 3 } , weight: 0.9 },
+    { id: 'nonlinear',   subject: 'Math', name: 'Nonlinear Functions',                seeded: { attempts: 5, correct: 4 } , weight: 1.0 },
+    { id: 'trig',        subject: 'Math', name: 'Right Triangles & Trigonometry',     seeded: { attempts: 5, correct: 1 } , weight: 0.7 },
+    { id: 'circles',     subject: 'Math', name: 'Circles',                            seeded: { attempts: 4, correct: 3 } , weight: 0.6 },
+    { id: 'data',        subject: 'Math', name: 'One-Variable Data',                  seeded: { attempts: 5, correct: 4 } , weight: 0.9 },
+    { id: 'twovar',      subject: 'Math', name: 'Two-Variable Data',                  seeded: { attempts: 6, correct: 4 } , weight: 1.0 },
+    { id: 'prob',        subject: 'Math', name: 'Probability & Conditional Prob.',    seeded: { attempts: 4, correct: 3 } , weight: 0.8 },
+    { id: 'transitions', subject: 'Reading & Writing', name: 'Transitions',           seeded: { attempts: 7, correct: 5 } , weight: 1.0 },
+    { id: 'boundaries',  subject: 'Reading & Writing', name: 'Boundaries',            seeded: { attempts: 6, correct: 5 } , weight: 1.0 },
+    { id: 'words',       subject: 'Reading & Writing', name: 'Words in Context',      seeded: { attempts: 8, correct: 6 } , weight: 1.2 },
+    { id: 'evidence',    subject: 'Reading & Writing', name: 'Command of Evidence',   seeded: { attempts: 5, correct: 4 } , weight: 1.2 },
+    { id: 'crosstext',   subject: 'Reading & Writing', name: 'Cross-Text Connections', seeded: { attempts: 5, correct: 3 } , weight: 0.7 },
+    { id: 'synthesis',   subject: 'Reading & Writing', name: 'Rhetorical Synthesis',  seeded: { attempts: 4, correct: 3 } , weight: 0.9 },
   ];
   const PACE_BUDGET = { 'Math': 88, 'Reading & Writing': 65 }; // expected seconds/question, same split the real app uses
 
   const QUESTIONS = [
     {
       skillId: 'linear', subject: 'Math — Linear Equations', difficulty: 'easy',
-      text: 'If 3x − 7 = 20, what is the value of x?',
-      choices: [ {t:'7'}, {t:'9', correct:true}, {t:'11'}, {t:'13'} ],
-      rationale: 'Add 7 to both sides to get 3x = 27, then divide by 3: x = 9.',
+      text: 'If \\(3x - 7 = 20\\), what is the value of \\(x\\)?',
+      choices: [ {t:'\\(7\\)'}, {t:'\\(9\\)', correct:true}, {t:'\\(11\\)'}, {t:'\\(13\\)'} ],
+      rationale: 'Add \\(7\\) to both sides to get \\(3x = 27\\), then divide by \\(3\\): \\(x = 9\\).',
+    },
+    {
+      skillId: 'linfunc', subject: 'Math — Linear Functions', difficulty: 'medium',
+      text: 'The graph of the linear function \\(f\\) is shown in the \\(xy\\)-plane. Which equation defines \\(f\\)?',
+      // 20px per unit, origin at (130,120). The line is y = 2x - 1, drawn
+      // between its window-edge lattice points (-2,-5) and (3,5); it also
+      // crosses the grid exactly at (-1,-3), (0,-1), (1,1), (2,3).
+      figure: {
+        maxWidth: 270,
+        alt: 'Graph in the xy-plane with grid lines 1 unit apart and axes labeled at -4, -2, 2, and 4. A straight line passes through the points (-2, -5), (-1, -3), (0, -1), (1, 1), (2, 3), and (3, 5).',
+        svg: `<svg viewBox="22 2 232 228">
+          <g stroke="currentColor" stroke-opacity=".18" stroke-width="1"><line x1="30" y1="20" x2="30" y2="220"/><line x1="30" y1="220" x2="230" y2="220"/><line x1="50" y1="20" x2="50" y2="220"/><line x1="30" y1="200" x2="230" y2="200"/><line x1="70" y1="20" x2="70" y2="220"/><line x1="30" y1="180" x2="230" y2="180"/><line x1="90" y1="20" x2="90" y2="220"/><line x1="30" y1="160" x2="230" y2="160"/><line x1="110" y1="20" x2="110" y2="220"/><line x1="30" y1="140" x2="230" y2="140"/><line x1="130" y1="20" x2="130" y2="220"/><line x1="30" y1="120" x2="230" y2="120"/><line x1="150" y1="20" x2="150" y2="220"/><line x1="30" y1="100" x2="230" y2="100"/><line x1="170" y1="20" x2="170" y2="220"/><line x1="30" y1="80" x2="230" y2="80"/><line x1="190" y1="20" x2="190" y2="220"/><line x1="30" y1="60" x2="230" y2="60"/><line x1="210" y1="20" x2="210" y2="220"/><line x1="30" y1="40" x2="230" y2="40"/><line x1="230" y1="20" x2="230" y2="220"/><line x1="30" y1="20" x2="230" y2="20"/></g>
+          <line x1="30" y1="120" x2="230" y2="120" stroke="currentColor" stroke-width="1.5"/>
+          <line x1="130" y1="20" x2="130" y2="220" stroke="currentColor" stroke-width="1.5"/>
+          <line x1="90" y1="220" x2="190" y2="20" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/>
+        </svg>`,
+        labels: [
+          { tex: '-4', x: 50, y: 133, size: 11 },
+          { tex: '-4', x: 135, y: 200, anchor: 'w', size: 11 },
+          { tex: '-2', x: 90, y: 133, size: 11 },
+          { tex: '-2', x: 135, y: 160, anchor: 'w', size: 11 },
+          { tex: '2', x: 170, y: 133, size: 11 },
+          { tex: '2', x: 135, y: 80, anchor: 'w', size: 11 },
+          { tex: '4', x: 210, y: 133, size: 11 },
+          { tex: '4', x: 135, y: 40, anchor: 'w', size: 11 },
+          { tex: 'O', x: 126, y: 132, anchor: 'e', size: 11 },
+          { tex: 'x', x: 236, y: 120, anchor: 'w' },
+          { tex: 'y', x: 136, y: 12, anchor: 'w' },
+        ],
+      },
+      choices: [ {t:'\\(f(x) = 2x - 1\\)', correct:true}, {t:'\\(f(x) = 2x + 1\\)'}, {t:'\\(f(x) = \\tfrac{1}{2}x - 1\\)'}, {t:'\\(f(x) = -2x - 1\\)'} ],
+      rationale: 'The line crosses the \\(y\\)-axis at \\((0, -1)\\) and passes through \\((2, 3)\\), so its slope is \\[\\frac{3 - (-1)}{2 - 0} = \\frac{4}{2} = 2\\] With slope \\(2\\) and \\(y\\)-intercept \\(-1\\), \\(f(x) = 2x - 1\\).',
     },
     {
       skillId: 'systems', subject: 'Math — Systems of Equations', difficulty: 'medium',
-      text: 'If x + y = 10 and x − y = 4, what is the value of x?',
-      choices: [ {t:'3'}, {t:'5'}, {t:'7', correct:true}, {t:'9'} ],
-      rationale: 'Add the two equations: 2x = 14, so x = 7.',
+      text: '\\[\\begin{aligned} x + y &= 10 \\\\ x - y &= 4 \\end{aligned}\\] The solution to the given system of equations is \\((x, y)\\). What is the value of \\(x\\)?',
+      choices: [ {t:'\\(3\\)'}, {t:'\\(5\\)'}, {t:'\\(7\\)', correct:true}, {t:'\\(9\\)'} ],
+      rationale: 'Add the two equations to eliminate \\(y\\): \\(2x = 14\\), so \\(x = 7\\). Checking every choice against both equations confirms it:',
+      rationaleTable: {
+        head: ['Choice', '\\(x\\)', '\\(y = 10 - x\\)', '\\(x - y\\)', '= 4?'],
+        rows: [
+          ['A', '\\(3\\)', '\\(7\\)', '\\(-4\\)', 'No'],
+          ['B', '\\(5\\)', '\\(5\\)', '\\(0\\)', 'No'],
+          ['C', '\\(7\\)', '\\(3\\)', '\\(4\\)', 'Yes'],
+          ['D', '\\(9\\)', '\\(1\\)', '\\(8\\)', 'No'],
+        ],
+        hit: 2,
+      },
+    },
+    {
+      skillId: 'equiv', subject: 'Math — Equivalent Expressions', difficulty: 'medium',
+      text: 'Which expression is equivalent to \\(\\sqrt[3]{x^6 y^9}\\), where \\(x > 0\\) and \\(y > 0\\)?',
+      choices: [ {t:'\\(x^3 y^6\\)'}, {t:'\\(x^{18} y^{27}\\)'}, {t:'\\(x^3 y^{9/2}\\)'}, {t:'\\(x^2 y^3\\)', correct:true} ],
+      rationale: 'A cube root is the same as raising to the \\(1/3\\) power, which divides each exponent by 3: \\[\\sqrt[3]{x^6 y^9} = x^{6/3}\\, y^{9/3} = x^2 y^3\\] Choice C divides by 2 instead (a square root), and choice B multiplies by 3.',
+    },
+    {
+      skillId: 'nonlinear', subject: 'Math — Nonlinear Functions', difficulty: 'medium',
+      text: 'The graph of the quadratic function \\(f\\) is shown in the \\(xy\\)-plane, where \\(y = f(x)\\). What is the minimum value of \\(f(x)\\)?',
+      // 20px per unit, origin (130,120). f(x) = (x - 1)^2 - 4, drawn from
+      // (-2, 5) to (4, 5) as a single quadratic Bezier with control point
+      // (1, -13) -- an exact parabola, not an approximation. Only the ±4
+      // y-ticks are labeled: at y = ±2 the curve would run through the labels.
+      figure: {
+        maxWidth: 270,
+        alt: 'Graph in the xy-plane with grid lines 1 unit apart. An upward-opening parabola has its lowest point at (1, -4), crosses the x-axis at (-1, 0) and (3, 0), crosses the y-axis at (0, -3), and passes through (-2, 5) and (4, 5).',
+        svg: `<svg viewBox="22 2 232 228">
+          <g stroke="currentColor" stroke-opacity=".18" stroke-width="1"><line x1="30" y1="20" x2="30" y2="220"/><line x1="30" y1="220" x2="230" y2="220"/><line x1="50" y1="20" x2="50" y2="220"/><line x1="30" y1="200" x2="230" y2="200"/><line x1="70" y1="20" x2="70" y2="220"/><line x1="30" y1="180" x2="230" y2="180"/><line x1="90" y1="20" x2="90" y2="220"/><line x1="30" y1="160" x2="230" y2="160"/><line x1="110" y1="20" x2="110" y2="220"/><line x1="30" y1="140" x2="230" y2="140"/><line x1="130" y1="20" x2="130" y2="220"/><line x1="30" y1="120" x2="230" y2="120"/><line x1="150" y1="20" x2="150" y2="220"/><line x1="30" y1="100" x2="230" y2="100"/><line x1="170" y1="20" x2="170" y2="220"/><line x1="30" y1="80" x2="230" y2="80"/><line x1="190" y1="20" x2="190" y2="220"/><line x1="30" y1="60" x2="230" y2="60"/><line x1="210" y1="20" x2="210" y2="220"/><line x1="30" y1="40" x2="230" y2="40"/><line x1="230" y1="20" x2="230" y2="220"/><line x1="30" y1="20" x2="230" y2="20"/></g>
+          <line x1="30" y1="120" x2="230" y2="120" stroke="currentColor" stroke-width="1.5"/>
+          <line x1="130" y1="20" x2="130" y2="220" stroke="currentColor" stroke-width="1.5"/>
+          <path d="M 90 20 Q 150 380 210 20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/>
+        </svg>`,
+        labels: [
+          { tex: '-4', x: 50, y: 133, size: 11 },
+          { tex: '-2', x: 90, y: 133, size: 11 },
+          { tex: '2', x: 170, y: 133, size: 11 },
+          { tex: '4', x: 210, y: 133, size: 11 },
+          { tex: '-4', x: 125, y: 200, anchor: 'e', size: 11 },
+          { tex: '4', x: 125, y: 40, anchor: 'e', size: 11 },
+          { tex: 'O', x: 126, y: 110, anchor: 'e', size: 11 },
+          { tex: 'x', x: 236, y: 120, anchor: 'w' },
+          { tex: 'y', x: 136, y: 12, anchor: 'w' },
+        ],
+      },
+      choices: [ {t:'\\(-3\\)'}, {t:'\\(1\\)'}, {t:'\\(-4\\)', correct:true}, {t:'\\(3\\)'} ],
+      rationale: 'An upward-opening parabola is lowest at its vertex, and the vertex on the graph is \\((1, -4)\\), so the minimum value of \\(f(x)\\) is its \\(y\\)-coordinate, \\(-4\\). The other choices are other features of the graph: \\(-3\\) is the \\(y\\)-intercept, \\(1\\) is the vertex’s \\(x\\)-coordinate, and \\(3\\) is an \\(x\\)-intercept.',
     },
     {
       skillId: 'trig', subject: 'Math — Right Triangles & Trigonometry', difficulty: 'hard',
-      text: 'A right triangle has one leg of length 6 and a hypotenuse of length 10. What is the length of the other leg?',
-      choices: [ {t:'6'}, {t:'7'}, {t:'8', correct:true}, {t:'9'} ],
-      rationale: 'This is a 6-8-10 right triangle, a scaled 3-4-5: 6² + 8² = 36 + 64 = 100 = 10².',
+      text: 'A right triangle has one leg of length \\(6\\) and a hypotenuse of length \\(10\\). What is the length of the other leg?',
+      // Drawn to scale at 20px per unit: legs 6 (120px) and 8 (160px), so the
+      // hypotenuse is exactly 200px = 10 units. Unknown leg left unlabeled.
+      figure: {
+        alt: 'Right triangle with the right angle at the bottom left. The vertical leg is labeled 6 and the hypotenuse is labeled 10. The horizontal leg is unlabeled.',
+        svg: `<svg viewBox="6 16 210 150">
+          <polygon points="40,150 40,30 200,150" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
+          <polyline points="40,136 54,136 54,150" fill="none" stroke="currentColor" stroke-width="1.5"/>
+        </svg>`,
+        labels: [
+          { tex: '6', x: 26, y: 90 },
+          { tex: '10', x: 137, y: 76 },
+        ],
+      },
+      choices: [ {t:'\\(6\\)'}, {t:'\\(7\\)'}, {t:'\\(8\\)', correct:true}, {t:'\\(9\\)'} ],
+      rationale: 'This is a 6-8-10 right triangle, a scaled 3-4-5: \\[6^2 + 8^2 = 36 + 64 = 100 = 10^2\\]',
+    },
+    {
+      skillId: 'trig', subject: 'Math — Right Triangles & Trigonometry', difficulty: 'hard',
+      text: 'In right triangle \\(ABC\\), angle \\(C\\) is a right angle, \\(AC = 12\\), and \\(BC = 5\\). What is the value of \\(\\sin A\\)?',
+      // 14px per unit: AC = 168px, BC = 70px, so AB = 182px = 13 units.
+      // AB is deliberately unlabeled; finding it is part of the problem.
+      figure: {
+        maxWidth: 250,
+        alt: 'Right triangle ABC with the right angle at C. Side AC, along the bottom, is labeled 12. Side BC, on the left, is labeled 5. Side AB is unlabeled.',
+        svg: `<svg viewBox="14 26 220 122">
+          <polygon points="208,120 40,50 40,120" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
+          <polyline points="40,108 52,108 52,120" fill="none" stroke="currentColor" stroke-width="1.5"/>
+        </svg>`,
+        labels: [
+          { tex: 'C', x: 30, y: 131 },
+          { tex: 'A', x: 219, y: 123 },
+          { tex: 'B', x: 40, y: 39 },
+          { tex: '12', x: 124, y: 133 },
+          { tex: '5', x: 29, y: 85 },
+        ],
+      },
+      choices: [ {t:'\\(\\dfrac{5}{12}\\)'}, {t:'\\(\\dfrac{12}{13}\\)'}, {t:'\\(\\dfrac{12}{5}\\)'}, {t:'\\(\\dfrac{5}{13}\\)', correct:true} ],
+      rationale: 'First find the hypotenuse: \\[AB = \\sqrt{12^2 + 5^2} = \\sqrt{169} = 13\\] The side opposite angle \\(A\\) is \\(BC\\), so \\[\\sin A = \\frac{BC}{AB} = \\frac{5}{13}\\] Choice B, \\(12/13\\), is \\(\\cos A\\), and choice A, \\(5/12\\), is \\(\\tan A\\).',
+    },
+    {
+      skillId: 'trig', subject: 'Math — Right Triangles & Trigonometry', difficulty: 'easy',
+      text: 'In right triangle \\(ABC\\), angle \\(C\\) is a right angle, \\(AC = 3\\), and \\(BC = 4\\). What is the length of \\(AB\\)?',
+      choices: [ {t:'\\(5\\)', correct:true}, {t:'\\(7\\)'}, {t:'\\(12\\)'}, {t:'\\(25\\)'} ],
+      rationale: '\\(AB\\) is the hypotenuse, so square the legs, add, and take the root: \\[AB = \\sqrt{3^2 + 4^2} = \\sqrt{25} = 5\\] Choice B adds the legs, C multiplies them, and D stops before taking the square root.',
+    },
+    {
+      skillId: 'trig', subject: 'Math — Right Triangles & Trigonometry', difficulty: 'medium',
+      text: 'In right triangle \\(ABC\\), angle \\(C\\) is a right angle and \\(\\sin A = \\tfrac{3}{5}\\). What is the value of \\(\\cos A\\)?',
+      choices: [ {t:'\\(\\dfrac{3}{4}\\)'}, {t:'\\(\\dfrac{4}{5}\\)', correct:true}, {t:'\\(\\dfrac{5}{4}\\)'}, {t:'\\(\\dfrac{5}{3}\\)'} ],
+      rationale: '\\(\\sin A = \\tfrac{3}{5}\\) means the side opposite \\(A\\) is 3 and the hypotenuse is 5, so the adjacent side is \\(\\sqrt{5^2 - 3^2} = 4\\) and \\[\\cos A = \\frac{4}{5}\\] Choice A is \\(\\tan A\\), C is \\(\\sec A\\), and D is \\(\\csc A\\).',
+    },
+    {
+      skillId: 'circles', subject: 'Math — Circles', difficulty: 'medium',
+      text: 'In the figure, points \\(A\\) and \\(B\\) lie on the circle with center \\(O\\). The radius of the circle is \\(9\\), and angle \\(AOB\\) measures \\(40^\\circ\\). What is the length of minor arc \\(AB\\)?',
+      // Center (120,110), radius 80px; A and B sit at +20° and -20° so the
+      // drawn central angle is a true 40°.
+      figure: {
+        alt: 'Circle with center O. Radii OA and OB form a 40 degree angle, and radius OA is labeled 9.',
+        svg: `<svg viewBox="30 22 196 176">
+          <circle cx="120" cy="110" r="80" fill="none" stroke="currentColor" stroke-width="2"/>
+          <polyline points="195.18,82.64 120,110 195.18,137.36" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>
+          <path d="M 140.67 102.48 A 22 22 0 0 1 140.67 117.52" fill="none" stroke="currentColor" stroke-width="1.3"/>
+          <circle cx="120" cy="110" r="3" fill="currentColor"/>
+          <circle cx="195.18" cy="82.64" r="3" fill="currentColor"/>
+          <circle cx="195.18" cy="137.36" r="3" fill="currentColor"/>
+        </svg>`,
+        labels: [
+          { tex: 'O', x: 112, y: 110, anchor: 'e' },
+          { tex: 'A', x: 210.21, y: 77.17 },
+          { tex: 'B', x: 210.21, y: 142.83 },
+          { tex: '40^\\circ', x: 160, y: 110, anchor: 'w', size: 13 },
+          { tex: '9', x: 151.43, y: 79.41 },
+        ],
+      },
+      choices: [ {t:'\\(2\\pi\\)', correct:true}, {t:'\\(4\\pi\\)'}, {t:'\\(9\\pi\\)'}, {t:'\\(18\\pi\\)'} ],
+      rationale: 'A \\(40^\\circ\\) central angle takes up \\(40/360 = 1/9\\) of the circle, so the arc is one-ninth of the circumference: \\[\\frac{1}{9} \\cdot 2\\pi(9) = 2\\pi\\]',
+    },
+    {
+      skillId: 'data', subject: 'Math — One-Variable Data', difficulty: 'medium',
+      text: 'The frequency table shows the number of books each student in a book club read over the summer. What is the median number of books read?',
+      table: {
+        head: ['Number of books', 'Frequency'],
+        rows: [ ['\\(1\\)', '\\(3\\)'], ['\\(2\\)', '\\(5\\)'], ['\\(3\\)', '\\(4\\)'], ['\\(4\\)', '\\(2\\)'] ],
+      },
+      choices: [ {t:'\\(2\\)', correct:true}, {t:'\\(2.5\\)'}, {t:'\\(3.5\\)'}, {t:'\\(5\\)'} ],
+      rationale: 'There are \\(3 + 5 + 4 + 2 = 14\\) students, so the median is the average of the 7th and 8th values in order. The 1st through 3rd values are \\(1\\), and the 4th through 8th values are \\(2\\), so the 7th and 8th values are both \\(2\\). The median is \\(2\\).',
+    },
+    {
+      skillId: 'twovar', subject: 'Math — Two-Variable Data', difficulty: 'medium',
+      text: 'The scatterplot shows the height of a plant over 10 weeks, along with the line of best fit. According to the line of best fit, what is the predicted height, in centimeters, of the plant at week 5?',
+      // 20px per week, 5px per cm. The least-squares line of these 10 points is
+      // exactly y = 3x + 5, so the line is drawn from (0, 5) to (10, 35) and
+      // reads 20 at week 5 -- on a gridline, not between two.
+      figure: {
+        maxWidth: 300,
+        alt: 'Scatterplot of plant height in centimeters against week, from week 1 to week 10, with a line of best fit rising from about 5 cm at week 0 to 35 cm at week 10. The plotted heights are 6, 13, 13, 19, 19, 25, 24, 30, 30, and 36 centimeters.',
+        svg: `<svg viewBox="24 0 246 272">
+          <g stroke="currentColor" stroke-opacity=".18" stroke-width="1"><line x1="70" y1="30" x2="70" y2="230"/><line x1="90" y1="30" x2="90" y2="230"/><line x1="110" y1="30" x2="110" y2="230"/><line x1="130" y1="30" x2="130" y2="230"/><line x1="150" y1="30" x2="150" y2="230"/><line x1="170" y1="30" x2="170" y2="230"/><line x1="190" y1="30" x2="190" y2="230"/><line x1="210" y1="30" x2="210" y2="230"/><line x1="230" y1="30" x2="230" y2="230"/><line x1="250" y1="30" x2="250" y2="230"/><line x1="50" y1="205" x2="250" y2="205"/><line x1="50" y1="180" x2="250" y2="180"/><line x1="50" y1="155" x2="250" y2="155"/><line x1="50" y1="130" x2="250" y2="130"/><line x1="50" y1="105" x2="250" y2="105"/><line x1="50" y1="80" x2="250" y2="80"/><line x1="50" y1="55" x2="250" y2="55"/><line x1="50" y1="30" x2="250" y2="30"/></g>
+          <line x1="50" y1="230" x2="250" y2="230" stroke="currentColor" stroke-width="1.5"/>
+          <line x1="50" y1="30" x2="50" y2="230" stroke="currentColor" stroke-width="1.5"/>
+          <line x1="50" y1="205" x2="250" y2="55" stroke="currentColor" stroke-width="2"/>
+          <g fill="currentColor"><circle cx="70" cy="200" r="3.4"/><circle cx="90" cy="165" r="3.4"/><circle cx="110" cy="165" r="3.4"/><circle cx="130" cy="135" r="3.4"/><circle cx="150" cy="135" r="3.4"/><circle cx="170" cy="105" r="3.4"/><circle cx="190" cy="110" r="3.4"/><circle cx="210" cy="80" r="3.4"/><circle cx="230" cy="80" r="3.4"/><circle cx="250" cy="50" r="3.4"/></g>
+        </svg>`,
+        labels: [
+          { tex: '2', x: 90, y: 244, size: 11 },
+          { tex: '4', x: 130, y: 244, size: 11 },
+          { tex: '6', x: 170, y: 244, size: 11 },
+          { tex: '8', x: 210, y: 244, size: 11 },
+          { tex: '10', x: 250, y: 244, size: 11 },
+          { tex: '10', x: 44, y: 180, anchor: 'e', size: 11 },
+          { tex: '20', x: 44, y: 130, anchor: 'e', size: 11 },
+          { tex: '30', x: 44, y: 80, anchor: 'e', size: 11 },
+          { tex: '40', x: 44, y: 30, anchor: 'e', size: 11 },
+          { tex: '0', x: 44, y: 230, anchor: 'e', size: 11 },
+          { text: 'Week', x: 150, y: 262, size: 12 },
+          { text: 'Height (cm)', x: 30, y: 8, anchor: 'w', size: 12 },
+        ],
+      },
+      choices: [ {t:'\\(15\\)'}, {t:'\\(19\\)'}, {t:'\\(20\\)', correct:true}, {t:'\\(25\\)'} ],
+      rationale: 'Follow week 5 up to the line of best fit, not to the data point: the line passes through \\((5, 20)\\), so the predicted height is 20 cm. Choice B, 19, is the plant’s actual recorded height that week, which the question isn’t asking for.',
+    },
+    {
+      skillId: 'prob', subject: 'Math — Probability & Conditional Probability', difficulty: 'medium',
+      text: 'The table shows where 150 students said they prefer to study. Of the seniors surveyed, what fraction said they prefer the library?',
+      table: {
+        caption: 'Preferred study location, by grade',
+        rowHeader: true, footRow: true,
+        head: ['', 'Juniors', 'Seniors', 'Total'],
+        rows: [
+          ['Library', '\\(30\\)', '\\(20\\)', '\\(50\\)'],
+          ['Café',    '\\(15\\)', '\\(25\\)', '\\(40\\)'],
+          ['Home',    '\\(25\\)', '\\(35\\)', '\\(60\\)'],
+          ['Total',   '\\(70\\)', '\\(80\\)', '\\(150\\)'],
+        ],
+      },
+      choices: [ {t:'\\(\\dfrac{2}{15}\\)'}, {t:'\\(\\dfrac{1}{4}\\)', correct:true}, {t:'\\(\\dfrac{2}{5}\\)'}, {t:'\\(\\dfrac{5}{8}\\)'} ],
+      rationale: 'The question asks about seniors only, so the denominator is the seniors column total, 80, and the numerator is the seniors who chose the library, 20: \\[\\frac{20}{80} = \\frac{1}{4}\\] The other choices use the wrong total: \\(20/150\\), \\(20/50\\), and \\(50/80\\).',
+    },
+    {
+      skillId: 'twovar', subject: 'Math — Two-Variable Data', difficulty: 'easy',
+      text: 'The graph shows the population of two cities from 2018 to 2023. In which year did the population of City A first exceed the population of City B?',
+      // 36px per year, 5px per thousand people. City A (solid) starts below
+      // City B (dashed) and passes it in 2021: 22 vs 19 thousand.
+      figure: {
+        maxWidth: 320,
+        caption: 'City population, in thousands',
+        alt: 'Line graph from 2018 to 2023. City A, a solid line, rises from 10 to 29 thousand. City B, a dashed line, falls from 24 to 15 thousand. City A is below City B until 2021, when City A reaches 22 thousand and City B is at 19 thousand.',
+        svg: `<svg viewBox="30 28 268 218">
+          <g stroke="currentColor" stroke-opacity=".18" stroke-width="1"><line x1="55" y1="175" x2="265" y2="175"/><line x1="55" y1="150" x2="265" y2="150"/><line x1="55" y1="125" x2="265" y2="125"/><line x1="55" y1="100" x2="265" y2="100"/><line x1="55" y1="75" x2="265" y2="75"/><line x1="55" y1="50" x2="265" y2="50"/></g>
+          <line x1="55" y1="200" x2="265" y2="200" stroke="currentColor" stroke-width="1.5"/>
+          <line x1="55" y1="50" x2="55" y2="200" stroke="currentColor" stroke-width="1.5"/>
+          <polyline points="70,150 106,130 142,115 178,90 214,70 250,55" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round"/>
+          <polyline points="70,80 106,90 142,100 178,105 214,115 250,125" fill="none" stroke="currentColor" stroke-width="2.2" stroke-dasharray="6 4" stroke-linejoin="round"/>
+          <g fill="currentColor"><circle cx="70" cy="150" r="2.8"/><circle cx="106" cy="130" r="2.8"/><circle cx="142" cy="115" r="2.8"/><circle cx="178" cy="90" r="2.8"/><circle cx="214" cy="70" r="2.8"/><circle cx="250" cy="55" r="2.8"/><circle cx="70" cy="80" r="2.8"/><circle cx="106" cy="90" r="2.8"/><circle cx="142" cy="100" r="2.8"/><circle cx="178" cy="105" r="2.8"/><circle cx="214" cy="115" r="2.8"/><circle cx="250" cy="125" r="2.8"/></g>
+        </svg>`,
+        labels: [
+          { tex: '0', x: 49, y: 200, anchor: 'e', size: 11 },
+          { tex: '10', x: 49, y: 150, anchor: 'e', size: 11 },
+          { tex: '20', x: 49, y: 100, anchor: 'e', size: 11 },
+          { tex: '30', x: 49, y: 50, anchor: 'e', size: 11 },
+          { text: '2018', x: 70, y: 214, size: 10 },
+          { text: '2019', x: 106, y: 214, size: 10 },
+          { text: '2020', x: 142, y: 214, size: 10 },
+          { text: '2021', x: 178, y: 214, size: 10 },
+          { text: '2022', x: 214, y: 214, size: 10 },
+          { text: '2023', x: 250, y: 214, size: 10 },
+          { text: 'City A', x: 257, y: 55, anchor: 'w', size: 11 },
+          { text: 'City B', x: 257, y: 125, anchor: 'w', size: 11 },
+          { text: 'Year', x: 160, y: 238, size: 12 },
+        ],
+      },
+      choices: [ {t:'2019'}, {t:'2020'}, {t:'2021', correct:true}, {t:'2022'} ],
+      rationale: 'City A stays below City B through 2020 (17 thousand against 20 thousand). In 2021 the solid line crosses above the dashed one: 22 thousand against 19 thousand, so 2021 is the first year City A’s population is greater.',
     },
     {
       skillId: 'transitions', subject: 'Reading & Writing — Transitions', difficulty: 'easy',
-      text: 'Many students find calculus intimidating at first. ______ with consistent practice, most come to find it manageable. Which choice completes the text with the most logical transition?',
+      passage: 'Many students find calculus intimidating at first. ______ with consistent practice, most come to find it manageable.',
+      text: 'Which choice completes the text with the most logical transition?',
       choices: [ {t:'For example,'}, {t:'However,', correct:true}, {t:'Similarly,'}, {t:'Therefore,'} ],
       rationale: '"However" signals the contrast between the initial intimidation and the opposite outcome that follows.',
     },
     {
-      skillId: 'boundaries', subject: 'Reading & Writing — Boundaries', difficulty: 'hard', passage: true,
-      text: 'Which choice completes the text with the most conventional punctuation?',
+      skillId: 'boundaries', subject: 'Reading & Writing — Boundaries', difficulty: 'hard',
+      passage: "The museum's new ______ opens to the public next month.",
+      text: 'Which choice completes the text so that it conforms to the conventions of Standard English?',
       choices: [
-        {t:"The museum's new exhibit which features artifacts from the region's earliest settlements opens to the public next month."},
-        {t:"The museum's new exhibit, which features artifacts from the region's earliest settlements, opens to the public next month.", correct:true},
-        {t:"The museum's new exhibit: which features artifacts from the region's earliest settlements, opens to the public next month."},
-        {t:"The museum's new exhibit which features artifacts from the region's earliest settlements, opens to the public next month."},
+        {t:"exhibit which features artifacts from the region's earliest settlements"},
+        {t:"exhibit, which features artifacts from the region's earliest settlements,", correct:true},
+        {t:"exhibit: which features artifacts from the region's earliest settlements,"},
+        {t:"exhibit which features artifacts from the region's earliest settlements,"},
       ],
       rationale: 'The clause "which features artifacts…" is nonrestrictive — the exhibit is already identified — so it takes a comma on both sides.',
+    },
+    {
+      skillId: 'words', subject: 'Reading & Writing — Words in Context', difficulty: 'easy',
+      passage: 'The novel’s plot is deliberately ______: events are narrated out of order, and several chapters openly contradict one another.',
+      text: 'Which choice completes the text with the most logical and precise word or phrase?',
+      choices: [
+        {t:'derivative'},
+        {t:'disjointed', correct:true},
+        {t:'ornate'},
+        {t:'concise'},
+      ],
+      rationale: '“Disjointed” describes something whose parts don’t connect smoothly, which is what out-of-order events and contradictory chapters produce. “Derivative” would mean unoriginal, “ornate” elaborately decorated, and “concise” brief — none of which the sentence gives evidence for.',
+    },
+    {
+      skillId: 'words', subject: 'Reading & Writing — Words in Context', difficulty: 'medium',
+      passage: 'Although the technique was first described in 1962, it remained ______ until researchers found a practical use for it decades later.',
+      text: 'Which choice completes the text with the most logical and precise word or phrase?',
+      choices: [
+        {t:'obscure', correct:true},
+        {t:'obsolete'},
+        {t:'contentious'},
+        {t:'provisional'},
+      ],
+      rationale: '“Obscure” means little known, which fits a technique that sat unnoticed until a use was found for it. “Obsolete” would mean it had fallen out of use, but it was never in use; “contentious” would require a dispute the text never mentions; “provisional” would mean temporary rather than unnoticed.',
+    },
+    {
+      skillId: 'words', subject: 'Reading & Writing — Words in Context', difficulty: 'medium',
+      passage: 'Rivera’s review was uniformly ______: she praised the lighting, the score, and nearly every performance in the production.',
+      text: 'Which choice completes the text with the most logical and precise word or phrase?',
+      choices: [
+        {t:'dismissive'},
+        {t:'measured'},
+        {t:'laudatory', correct:true},
+        {t:'technical'},
+      ],
+      rationale: '“Laudatory” means full of praise, matching a review that praises nearly everything in the production. “Dismissive” is its opposite, “measured” would suggest a restraint the review doesn’t show, and “technical” describes a review’s style rather than its favorable verdict.',
+    },
+    {
+      skillId: 'words', subject: 'Reading & Writing — Words in Context', difficulty: 'hard',
+      passage: 'The committee’s recommendations were ______: they proposed a course of action but left the board free to reject it.',
+      text: 'Which choice completes the text with the most logical and precise word or phrase?',
+      choices: [
+        {t:'binding'},
+        {t:'redundant'},
+        {t:'punitive'},
+        {t:'advisory', correct:true},
+      ],
+      rationale: '“Advisory” describes guidance that carries no obligation, which is why the board stays free to reject it. “Binding” is the opposite; “redundant” would mean unnecessary repetition, and “punitive” would mean intended as punishment — neither is suggested by the sentence.',
+    },
+    {
+      skillId: 'words', subject: 'Reading & Writing — Words in Context', difficulty: 'hard',
+      passage: 'Because the study surveyed only volunteers who answered an online advertisement, its findings cannot be ______ to the general population.',
+      text: 'Which choice completes the text with the most logical and precise word or phrase?',
+      choices: [
+        {t:'attributed'},
+        {t:'extrapolated', correct:true},
+        {t:'subordinated'},
+        {t:'appended'},
+      ],
+      rationale: 'To “extrapolate” is to extend a finding from the group studied to a larger one, which a self-selected sample can’t support. “Attributed” would mean crediting the findings to the population, “subordinated” ranking them beneath it, and “appended” attaching them to it — none of which describes generalizing a result.',
+    },
+    {
+      skillId: 'evidence', subject: 'Reading & Writing — Command of Evidence', difficulty: 'medium',
+      passage: 'A student in an ecology class observed bees in a community garden to learn whether flower color affects how often bees visit. The student counted bee visits per hour to flowers of four colors and concluded that bees in the garden visited yellow flowers more often than flowers of any other color observed.',
+      // Bars rise 5px per visit from the baseline at y = 170, with gridlines
+      // every 5 visits: Blue 15, Yellow 25, White 10, Red 5.
+      figure: {
+        maxWidth: 320,
+        caption: 'Bee Visits per Hour by Flower Color',
+        alt: 'Bar graph of bee visits per hour by flower color: blue 15, yellow 25, white 10, red 5.',
+        svg: `<svg viewBox="10 0 290 212">
+          <g stroke="currentColor" stroke-opacity=".18" stroke-width="1"><line x1="50" y1="145" x2="290" y2="145"/><line x1="50" y1="120" x2="290" y2="120"/><line x1="50" y1="95" x2="290" y2="95"/><line x1="50" y1="70" x2="290" y2="70"/><line x1="50" y1="45" x2="290" y2="45"/><line x1="50" y1="20" x2="290" y2="20"/></g>
+          <g fill="currentColor" fill-opacity=".72"><rect x="62" y="95" width="36" height="75"/><rect x="122" y="45" width="36" height="125"/><rect x="182" y="120" width="36" height="50"/><rect x="242" y="145" width="36" height="25"/></g>
+          <line x1="50" y1="170" x2="290" y2="170" stroke="currentColor" stroke-width="1.5"/>
+          <line x1="50" y1="20" x2="50" y2="170" stroke="currentColor" stroke-width="1.5"/>
+        </svg>`,
+        labels: [
+          { text: '0', x: 44, y: 170, anchor: 'e', size: 11 },
+          { text: '5', x: 44, y: 145, anchor: 'e', size: 11 },
+          { text: '10', x: 44, y: 120, anchor: 'e', size: 11 },
+          { text: '15', x: 44, y: 95, anchor: 'e', size: 11 },
+          { text: '20', x: 44, y: 70, anchor: 'e', size: 11 },
+          { text: '25', x: 44, y: 45, anchor: 'e', size: 11 },
+          { text: '30', x: 44, y: 20, anchor: 'e', size: 11 },
+          { text: 'Blue', x: 80, y: 182, size: 12 },
+          { text: 'Yellow', x: 140, y: 182, size: 12 },
+          { text: 'White', x: 200, y: 182, size: 12 },
+          { text: 'Red', x: 260, y: 182, size: 12 },
+          { text: 'Flower color', x: 170, y: 203, size: 12 },
+          { text: 'Visits per hour', x: 50, y: 8, anchor: 'w', size: 12 },
+        ],
+      },
+      text: 'Which choice most effectively uses data from the graph to support the student’s conclusion?',
+      choices: [
+        {t:'Blue flowers received 15 visits per hour, while white flowers received 10.'},
+        {t:'Red flowers received 5 visits per hour, the fewest of the four colors.'},
+        {t:'Yellow flowers received 25 visits per hour, while blue, white, and red flowers each received 15 or fewer.', correct:true},
+        {t:'White flowers received 10 visits per hour, twice as many as red flowers.'},
+      ],
+      rationale: 'The conclusion compares yellow flowers with every other color, so the evidence has to make that same comparison: 25 visits per hour for yellow against 15 or fewer for blue, white, and red. The other choices state accurate values from the graph, but none of them compares yellow with the other colors.',
+    },
+    {
+      skillId: 'crosstext', subject: 'Reading & Writing — Cross-Text Connections', difficulty: 'hard',
+      passages: [
+        { label: 'Text 1', text: 'Some urban planners argue that adding bike lanes to city streets reduces traffic congestion. Their reasoning is simple: every driver who switches to cycling is one fewer car competing for road space.' },
+        { label: 'Text 2', text: 'Researchers who studied new bike lanes in several mid-sized cities found that the lanes had little effect on congestion. Surveys showed that most people who began using the new lanes had previously taken the bus or walked rather than driven, so the number of cars on the road barely changed.' },
+      ],
+      text: 'Based on the texts, how would the researchers in Text 2 most likely respond to the reasoning presented in Text 1?',
+      choices: [
+        {t:'By agreeing that bike lanes reduce congestion but noting that the effect takes several years to appear'},
+        {t:'By pointing out that the reasoning assumes new cyclists were previously drivers, which the surveys showed was mostly not the case', correct:true},
+        {t:'By arguing that bike lanes actually increase congestion by taking road space away from cars'},
+        {t:'By suggesting that improving bus service would reduce congestion more than adding bike lanes would'},
+      ],
+      rationale: 'Text 1’s reasoning only works if people who start cycling used to drive. Text 2’s surveys found that most new cyclists had taken the bus or walked instead, which undercuts that assumption. Text 2 never says the effect takes years, that bike lanes increase congestion, or that buses work better.',
+    },
+    {
+      skillId: 'synthesis', subject: 'Reading & Writing — Rhetorical Synthesis', difficulty: 'medium',
+      notes: {
+        intro: 'While researching a topic, a student has taken the following notes:',
+        items: [
+          'The violin and the cello are both members of the string family of instruments.',
+          'The violin has four strings.',
+          'The cello also has four strings.',
+          'The violin is usually played resting between the player’s shoulder and chin.',
+          'The cello is played upright, resting on the floor between the player’s knees.',
+        ],
+      },
+      text: 'The student wants to emphasize a difference between the violin and the cello. Which choice most effectively uses relevant information from the notes to accomplish this goal?',
+      choices: [
+        {t:'The violin is usually played resting between the player’s shoulder and chin, while the cello is played upright, resting on the floor.', correct:true},
+        {t:'The violin and the cello are both string instruments, and each has four strings.'},
+        {t:'The cello, a member of the string family, is played upright between the player’s knees.'},
+        {t:'The violin, which has four strings, is a member of the string family of instruments.'},
+      ],
+      rationale: 'Only choice A contrasts the two instruments, using the notes about how each one is held. Choice B describes what they have in common, and choices C and D each describe only one instrument, so neither can show a difference.',
     },
   ];
 
   let current = 0;
   let shownAt = Date.now();
   let answeredState = new Array(QUESTIONS.length).fill(null); // null | true | false
-  const live = {}; // skillId -> { attempts, correct, paceSec: [] }
+  const live = {}; // skillId -> { attempts, correct, paceSec: [], results: [{correct, difficulty, paceSec}] }
+
+  // ── Mastery model ───────────────────────────────────────────────────────
+  // Every number the tutor view shows comes out of these functions, so the
+  // bars, the ordering and the sentence in the callout can't disagree with
+  // each other. Four things a raw percentage gets wrong:
+  //   1. a thin record (0 of 1) outranks a long one (2 of 12) -- so estimates
+  //      start at a prior and move as evidence accumulates;
+  //   2. a miss from three weeks ago counts as much as one from today -- so
+  //      older attempts decay (half-life measured in attempts, not days);
+  //   3. an easy question counts the same as a hard one;
+  //   4. "lowest percentage" isn't the same question as "what should this
+  //      session cover" -- that also depends on how sure we are and on how
+  //      much the skill is worth on the test.
+  const MODEL = {
+    priorWeight: 2.2,          // pseudo-attempts pulling a thin record toward the prior
+    priorMastery: 0.5,
+    halfLife: 6,               // attempts until older evidence counts half
+    difficultyWeight: { easy: 0.8, medium: 1, hard: 1.25 },
+    rushedSec: 25,             // wrong and faster than this reads as a guess
+    slowRatio: 1.4,            // of the per-subject pace budget
+    thinEvidence: 0.45,        // confidence below this is flagged, not hidden
+  };
+
+  // Seeded history has no per-question detail, so it enters as one block of
+  // older, medium-difficulty attempts -- always older than anything answered
+  // in this session.
+  function skillEvidence(skill) {
+    const l = live[skill.id];
+    const events = [];
+    for (let i = 0; i < skill.seeded.attempts; i++) {
+      events.push({ correct: i < skill.seeded.correct, difficulty: 'medium', live: false });
+    }
+    (l ? l.results : []).forEach(r => events.push({ ...r, live: true }));
+    return events;
+  }
+
+  function mastery(skill) {
+    const events = skillEvidence(skill);
+    let weight = 0, weightedCorrect = 0;
+    events.forEach((e, i) => {
+      const age = events.length - 1 - i;
+      const w = (MODEL.difficultyWeight[e.difficulty] || 1) * Math.pow(0.5, age / MODEL.halfLife);
+      weight += w;
+      if (e.correct) weightedCorrect += w;
+    });
+    const liveEvents = events.filter(e => e.live);
+    return {
+      value: (weightedCorrect + MODEL.priorWeight * MODEL.priorMastery) / (weight + MODEL.priorWeight),
+      confidence: weight / (weight + MODEL.priorWeight),
+      attempts: events.length,
+      correct: events.filter(e => e.correct).length,
+      liveAttempts: liveEvents.length,
+      liveCorrect: liveEvents.filter(e => e.correct).length,
+      seededRate: skill.seeded.attempts ? skill.seeded.correct / skill.seeded.attempts : null,
+    };
+  }
+
+  function paceSignal(skill) {
+    const l = live[skill.id];
+    if (!l || !l.results.length) return null;
+    const avgSec = l.results.reduce((a, r) => a + r.paceSec, 0) / l.results.length;
+    return {
+      avgSec: Math.round(avgSec),
+      ratio: avgSec / PACE_BUDGET[skill.subject],
+      rushedMiss: l.results.some(r => !r.correct && r.paceSec < MODEL.rushedSec),
+    };
+  }
+
+  // What to spend the session on: how far from mastered, and how sure we are of
+  // that. Test weight is only a tiebreaker -- a skill that shows up more often
+  // on the test wins a close call, but it can never push a 55% skill above a
+  // 21% one, which is what a tutor reading the list top to bottom expects.
+  function priority(skill) {
+    const m = mastery(skill);
+    return (1 - m.value) * (0.55 + 0.45 * m.confidence) * (0.85 + 0.15 * (skill.weight || 1));
+  }
+
+  function skillSignals(skill) {
+    const m = mastery(skill), pace = paceSignal(skill), chips = [];
+    if (m.liveAttempts) chips.push({ text: `${m.liveCorrect} of ${m.liveAttempts} today` });
+    if (pace && pace.rushedMiss) chips.push({ text: 'missed in under ' + MODEL.rushedSec + 's', tone: 'warn' });
+    else if (pace && pace.ratio > MODEL.slowRatio) chips.push({ text: `${pace.avgSec}s vs ${PACE_BUDGET[skill.subject]}s budget`, tone: 'warn' });
+    if (m.confidence < MODEL.thinEvidence) chips.push({ text: 'thin evidence' });
+    if (m.liveAttempts >= 2 && m.seededRate !== null) {
+      const liveRate = m.liveCorrect / m.liveAttempts;
+      if (liveRate - m.seededRate >= 0.25) chips.push({ text: 'improving', tone: 'good' });
+      else if (m.seededRate - liveRate >= 0.25) chips.push({ text: 'slipping', tone: 'warn' });
+    }
+    return { mastery: m, pace, chips };
+  }
+
+  // ── Feedback provider ───────────────────────────────────────────────────
+  // Default: the question's own written rationale, rendered instantly.
+  // Set COACH.endpoint to a proxy that calls the Claude API server-side (see
+  // api/feedback.ts) and the page adds a short note about the specific choice
+  // the student made. The API key never reaches the browser. If the endpoint
+  // is unset, slow, blocked by CSP, or errors, the written rationale stands on
+  // its own -- the feature is additive, never load-bearing.
+  const COACH = { endpoint: null, timeoutMs: 9000 };
+  const coachCache = new Map();
+
+  async function coachNote(q, chosenIndex, isCorrect, paceSec) {
+    if (!COACH.endpoint) return null;
+    const key = `${q.skillId}:${current}:${chosenIndex}`;
+    if (coachCache.has(key)) return coachCache.get(key);
+    const skill = SKILLS.find(s => s.id === q.skillId);
+    const m = mastery(skill);
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), COACH.timeoutMs);
+    try {
+      const res = await fetch(COACH.endpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        signal: controller.signal,
+        body: JSON.stringify({
+          skill: skill.name, subject: q.subject, difficulty: q.difficulty,
+          question: q.text, passage: q.passage || null,
+          choices: q.choices.map(c => c.t),
+          chosenIndex, correctIndex: q.choices.findIndex(c => c.correct),
+          rationale: q.rationale,
+          secondsTaken: paceSec, paceBudget: PACE_BUDGET[skill.subject],
+          skillMastery: Math.round(m.value * 100), skillAttempts: m.attempts,
+        }),
+      });
+      if (!res.ok) return null;
+      const data = await res.json();
+      const note = typeof data.note === 'string' && data.note.trim() ? data.note.trim() : null;
+      coachCache.set(key, note);
+      return note;
+    } catch (e) {
+      return null; // aborted, offline, blocked, or bad JSON -- stay with the written rationale
+    } finally {
+      clearTimeout(timer);
+    }
+  }
+
+  async function fillCoachNote(q, chosenIndex, isCorrect, paceSec) {
+    const slot = document.getElementById('coachSlot');
+    if (!slot || !COACH.endpoint) return;
+    const token = ++fillCoachNote.token;
+    slot.innerHTML = `<div class="coach pending"><div class="coach-label">${ICON_SPARK} Coaching note</div><p class="coach-text">Looking at your answer…</p></div>`;
+    const note = await coachNote(q, chosenIndex, isCorrect, paceSec);
+    if (token !== fillCoachNote.token) return;      // student moved on
+    slot.innerHTML = note
+      ? `<div class="coach"><div class="coach-label">${ICON_SPARK} Coaching note</div><p class="coach-text">${rich(note)}</p></div>`
+      : '';
+  }
+  fillCoachNote.token = 0;
 
   function switchView(view) {
     document.getElementById('tabStudent').classList.toggle('active', view === 'student');
@@ -363,27 +1151,307 @@
     if (view === 'tutor') renderTutor();
   }
 
+  // ── Lessons ─────────────────────────────────────────────────────────────
+  // One short lesson per subskill: the rule, then the move that applies it.
+  // Surfaced where it's earned -- collapsed under a missed question, and named
+  // in the tutor brief's focus callout -- rather than as a wall of text.
+  const LESSONS = {
+    linear: { title: 'Undo the operations in reverse order',
+      body: 'Whatever was done to \\(x\\) last, undo first: addition before multiplication. For \\(3x - 7 = 20\\), add 7 to both sides before dividing by 3. Check by substituting your answer back into the original equation — it costs five seconds and catches sign slips.' },
+    linfunc: { title: 'Read slope and intercept straight off the graph',
+      body: 'Find two points where the line crosses grid corners exactly. Slope is the rise over the run between them, and the \\(y\\)-intercept is where the line crosses the \\(y\\)-axis. With \\((0, -1)\\) and \\((2, 3)\\): slope \\(= \\tfrac{4}{2} = 2\\), so \\(f(x) = 2x - 1\\).' },
+    systems: { title: 'Add the equations when a variable cancels',
+      body: 'If the same variable appears with opposite signs, adding the two equations eliminates it in one step — no substitution needed. \\((x + y) + (x - y)\\) drops \\(y\\) and leaves \\(2x\\). If nothing cancels yet, multiply one equation through first.' },
+    equiv: { title: 'A root is a fractional exponent',
+      body: 'An \\(n\\)th root divides every exponent by \\(n\\): \\(\\sqrt[3]{x^6} = x^{6/3} = x^2\\). Squaring or cubing multiplies them instead. When choices differ only in their exponents, work out one exponent and you can usually eliminate three options at once.' },
+    nonlinear: { title: 'The vertex is the minimum or maximum',
+      body: 'A parabola opening upward is lowest at its vertex, so the minimum value of \\(f\\) is the vertex’s \\(y\\)-coordinate — not its \\(x\\)-coordinate, and not an intercept. Opening downward, the same point is the maximum.' },
+    trig: { title: 'Hypotenuse first, then the ratio',
+      body: 'Get the third side from \\(a^2 + b^2 = c^2\\) before reaching for a ratio. Then SOH-CAH-TOA: sine is opposite over hypotenuse, cosine adjacent over hypotenuse, tangent opposite over adjacent. Most wrong answers on these are the right numbers in the wrong ratio.' },
+    circles: { title: 'Arc and sector are fractions of the whole circle',
+      body: 'A central angle of \\(\\theta\\) degrees cuts off \\(\\tfrac{\\theta}{360}\\) of the circle. Multiply that fraction by the circumference \\(2\\pi r\\) for arc length, or by the area \\(\\pi r^2\\) for sector area. Confusing the two is the most common miss here.' },
+    data: { title: 'The median is a position, not a value you compute',
+      body: 'Count the total first. With \\(n\\) values the median sits at position \\(\\tfrac{n+1}{2}\\), or between the two middle ones when \\(n\\) is even. In a frequency table, add frequencies until you reach that position — don’t take the middle of the listed values.' },
+    twovar: { title: 'Predictions come from the line, not the dots',
+      body: 'A line of best fit answers "what would we expect", so read the line at the \\(x\\) you were given. The nearby data point is what actually happened, and it is nearly always offered as a wrong answer.' },
+    prob: { title: 'The denominator is the group the question names',
+      body: '"Of the seniors" means seniors are the whole, so the denominator is the seniors total — not the grand total, and not the row total. Find that group in the table first, then the count inside it.' },
+    transitions: { title: 'Name the relationship before you look at the choices',
+      body: 'Say in your own words how the second sentence relates to the first: contrast, cause, example, or addition. Then pick the transition that matches. Reading the four options first invites you to justify whichever one sounds smooth.' },
+    boundaries: { title: 'Nonrestrictive information takes commas on both sides',
+      body: 'If the sentence already identifies the thing, extra description is nonrestrictive and needs a comma at each end — never one. Test it by removing the clause: if the sentence still points to the same thing, it takes the pair of commas.' },
+    words: { title: 'Fill the blank yourself first',
+      body: 'Cover the choices, read the sentence, and put in your own word. Then find the choice closest to it. The wrong options usually fit the topic but not the sentence’s logic — a word can be about the right subject and still be the wrong meaning.' },
+    evidence: { title: 'Match the evidence to the exact claim',
+      body: 'If the conclusion compares one thing with all the others, the evidence has to make that same comparison. Choices that quote real numbers from the graph but never compare them are the trap — accurate, and beside the point.' },
+    crosstext: { title: 'Find the assumption the second text attacks',
+      body: 'Most cross-text questions turn on one unstated assumption in the first text. Name it, then check which choice says the second text contradicts that assumption — not merely that the two disagree in tone.' },
+    synthesis: { title: 'Let the stated goal choose the notes',
+      body: 'The goal sentence is the instruction: to emphasize a difference, the answer must mention both things and contrast them. A choice can be perfectly accurate and still fail the goal because it describes only one of them.' },
+  };
+
+  // Short definitions for the words used in vocabulary questions, so a miss
+  // teaches both the word that was right and the word that was picked.
+  const GLOSSARY = {
+    disjointed: 'not connecting smoothly; disconnected',
+    derivative: 'copied from something else; unoriginal',
+    ornate: 'elaborately decorated',
+    concise: 'saying much in few words',
+    obscure: 'little known; hard to notice',
+    obsolete: 'no longer in use; out of date',
+    contentious: 'causing disagreement',
+    provisional: 'temporary; arranged for now',
+    laudatory: 'full of praise',
+    dismissive: 'treating something as unworthy of attention',
+    measured: 'careful and restrained',
+    technical: 'concerned with the methods of a subject',
+    advisory: 'offering guidance without obligation',
+    binding: 'creating an obligation that must be followed',
+    redundant: 'unnecessary because it repeats something',
+    punitive: 'intended as punishment',
+    extrapolated: 'extended from known cases to a larger one',
+    attributed: 'credited to a source or cause',
+    subordinated: 'placed in a lower rank',
+    appended: 'attached to the end of something',
+  };
+
+  function lessonHtml(skillId) {
+    const lesson = LESSONS[skillId];
+    if (!lesson) return '';
+    return `<details class="lesson">
+      <summary><span class="lesson-tag">Quick lesson</span> ${esc(lesson.title)}</summary>
+      <p class="lesson-body">${rich(lesson.body)}</p>
+    </details>`;
+  }
+
+  // After a vocabulary question, define the word that was right and the one
+  // that was chosen -- the pair is the lesson.
+  function glossaryHtml(q, chosenIndex) {
+    if (q.skillId !== 'words') return '';
+    const correctIndex = q.choices.findIndex(c => c.correct);
+    const words = [...new Set([q.choices[correctIndex].t, q.choices[chosenIndex].t])]
+      .map(w => w.toLowerCase().trim())
+      .filter(w => GLOSSARY[w]);
+    if (!words.length) return '';
+    return `<dl class="glossary">${words.map(w => `
+      <div class="glossary-row"><dt>${esc(w)}</dt><dd>${esc(GLOSSARY[w])}</dd></div>`).join('')}</dl>`;
+  }
+
+  const DIFFICULTY_RANK = { easy: 0, medium: 1, hard: 2 };
+  let lastSkillId = null;
+  let chosenReason = '';
+
+  // ── Session shape ───────────────────────────────────────────────────────
+  // A session is a short, bounded block rather than the whole bank, because a
+  // finite target gets finished and an open-ended list gets abandoned. Two
+  // things inside it do most of the learning work:
+  //   - retrieval practice: a missed question comes back a couple of questions
+  //     later, once the answer is no longer sitting in short-term memory.
+  //     Recalling it then is what moves it into durable memory; re-reading the
+  //     explanation does not.
+  //   - a visible finish line: mastery before and after, so the session ends
+  //     with evidence it was worth doing.
+  const SESSION = { length: 8, retryGap: 2, maxRetries: 3 };
+  let askedCount = 0;
+  let sessionLog = [];        // { index, skillId, correct, paceSec, retry }
+  let retryQueue = [];        // { index, dueAt }
+  let masteryAtStart = {};
+  let sessionStartedAt = 0;
+  let currentIsRetry = false;
+  // Questions missed and not recovered by the end of a session. They open the
+  // next one -- without this, the summary's promise that they "come back" is
+  // just a sentence.
+  let carryOver = [];
+
+  function startSession() {
+    askedCount = 0;
+    sessionLog = [];
+    retryQueue = [];
+    lastSkillId = null;
+    currentIsRetry = false;
+    masteryAtStart = {};
+    SKILLS.forEach(s => { masteryAtStart[s.id] = mastery(s).value; });
+    sessionStartedAt = Date.now();
+    // Questions reset each session, so a skill can be revisited in a later
+    // session -- spacing across sessions is the other half of the same idea.
+    answeredState = new Array(QUESTIONS.length).fill(null);
+    // Anything left unsteady last time surfaces in the first few questions.
+    retryQueue = carryOver.map((index, n) => ({ index, dueAt: n + 1 }));
+    carryOver = [];
+    const first = pickNextQuestion();
+    current = first.index;
+    chosenReason = first.reason;
+    currentIsRetry = !!first.retry;
+    renderQuestion();
+  }
+
+  function pickNextQuestion() {
+    if (askedCount >= SESSION.length) return { index: -1, reason: '' };
+
+    // A missed question that has had a couple of questions in between comes
+    // back before anything new.
+    const due = retryQueue.find(r => askedCount >= r.dueAt);
+    if (due) {
+      retryQueue = retryQueue.filter(r => r !== due);
+      answeredState[due.index] = null;
+      const skill = SKILLS.find(s => s.id === QUESTIONS[due.index].skillId);
+      return { index: due.index, retry: true,
+        reason: `This one again — you missed it a few questions ago, and pulling it back from memory now is what makes ${skill.name} stick.` };
+    }
+
+    const queued = new Set(retryQueue.map(r => r.index));
+    const pool = QUESTIONS.map((q, i) => ({ q, i }))
+      .filter(({ i }) => answeredState[i] === null && !queued.has(i));
+    if (!pool.length) return { index: -1, reason: '' };
+
+    const scored = pool.map(({ q, i }) => {
+      const skill = SKILLS.find(s => s.id === q.skillId);
+      const m = mastery(skill);
+      const target = m.value < 0.4 ? 0 : m.value < 0.7 ? 1 : 2;
+      const fit = 1 - Math.abs(DIFFICULTY_RANK[q.difficulty] - target) * 0.22;
+      const variety = q.skillId === lastSkillId ? 0.75 : 1;
+      return { q, i, skill, m, score: priority(skill) * fit * variety };
+    }).sort((a, b) => b.score - a.score);
+
+    const top = scored[0];
+    const pct = Math.round(top.m.value * 100);
+    const weakest = [...scored].sort((a, b) => priority(b.skill) - priority(a.skill))[0];
+    const first = askedCount === 0;
+    const rebuilding = top.m.liveAttempts > 0 && top.m.liveCorrect < top.m.liveAttempts;
+    const rotated = lastSkillId && weakest.skill.id === lastSkillId && top.skill.id !== lastSkillId;
+    let reason;
+    if (rebuilding) {
+      reason = `${top.skill.name} slipped earlier in this session, so here's a ${top.q.difficulty} one to rebuild it (${pct}% mastery).`;
+    } else if (rotated) {
+      reason = `Rotating off ${weakest.skill.name} for one question — ${top.skill.name} is next by priority (${pct}% mastery).`;
+    } else if (top.skill.id === weakest.skill.id) {
+      reason = `${top.skill.name} is your weakest skill right now (${pct}% mastery), so ${first ? 'the session starts there' : "that's up next"}.`;
+    } else {
+      reason = `${top.skill.name} is next by priority (${pct}% mastery), at ${top.q.difficulty} level.`;
+    }
+    return { index: top.i, reason };
+  }
+
+  // ── Session summary ─────────────────────────────────────────────────────
+  function renderSessionSummary(card) {
+    const answered = sessionLog.length;
+    const correct = sessionLog.filter(e => e.correct).length;
+    const firstTries = sessionLog.filter(e => !e.retry);
+    const recovered = sessionLog.filter(e => e.retry && e.correct).length;
+    // Missed on the retry, or never got its retry before the session ended.
+    const unresolved = [...new Set([
+      ...sessionLog.filter(e => e.retry && !e.correct).map(e => e.index),
+      ...retryQueue.map(r => r.index),
+    ])].filter(index => !sessionLog.some(e => e.index === index && e.correct));
+    carryOver = unresolved;
+    const stillShaky = unresolved.length;
+    const minutes = Math.max(1, Math.round((Date.now() - sessionStartedAt) / 60000));
+    const accuracy = firstTries.length ? Math.round((firstTries.filter(e => e.correct).length / firstTries.length) * 100) : 0;
+
+    const moved = SKILLS
+      .map(s => ({ skill: s, before: masteryAtStart[s.id] ?? mastery(s).value, after: mastery(s).value }))
+      .map(m => ({ ...m, delta: Math.round(m.after * 100) - Math.round(m.before * 100) }))
+      .filter(m => sessionLog.some(e => e.skillId === m.skill.id))
+      .sort((a, b) => b.delta - a.delta);
+
+    const ranked = SKILLS.filter(s => mastery(s).attempts > 0).sort((a, b) => priority(b) - priority(a));
+    const next = ranked[0];
+
+    card.innerHTML = `
+      <div class="summary-card">
+        <div class="done-icon">${ICON_TARGET.replace('width="20" height="20"', 'width="28" height="28"')}</div>
+        <h2>Session complete</h2>
+        <p class="summary-sub">${answered} question${answered === 1 ? '' : 's'} in about ${minutes} minute${minutes === 1 ? '' : 's'} · ${accuracy}% first-try accuracy${recovered ? ` · ${recovered} recovered on the second look` : ''}</p>
+
+        <div class="section-title">What moved</div>
+        ${moved.length ? moved.map(m => `
+          <div class="moved-row">
+            <span class="moved-name">${esc(m.skill.name)}</span>
+            <span class="moved-nums">
+              <span class="moved-before">${Math.round(m.before * 100)}%</span>
+              <span class="moved-arrow" aria-hidden="true">→</span>
+              <span class="moved-after">${Math.round(m.after * 100)}%</span>
+              <span class="moved-delta ${m.delta > 0 ? 'up' : m.delta < 0 ? 'down' : ''}">${m.delta > 0 ? '+' : ''}${m.delta}</span>
+            </span>
+          </div>`).join('') : '<p class="summary-sub">No skills were touched this session.</p>'}
+        ${stillShaky ? `<p class="summary-note">${stillShaky} question${stillShaky === 1 ? '' : 's'} still unsteady — ${stillShaky === 1 ? 'it opens' : 'they open'} your next session.</p>` : ''}
+
+        ${next ? `
+        <div class="focus-callout">
+          <div class="focus-icon">${ICON_TARGET}</div>
+          <div>
+            <div class="focus-title">Next session should open with</div>
+            <div class="focus-name">${esc(next.name)}</div>
+            <div class="focus-note">${Math.round(mastery(next).value * 100)}% mastery over ${mastery(next).attempts} attempts.</div>
+            ${LESSONS[next.id] ? `<div class="focus-lesson"><span class="lesson-tag">Read before next time</span> ${esc(LESSONS[next.id].title)}</div>` : ''}
+          </div>
+        </div>` : ''}
+
+        <div class="summary-actions">
+          <button type="button" class="next-btn" onclick="startSession()">Start another session</button>
+          <button type="button" class="switch-btn" onclick="switchView('tutor')">See the tutor's view</button>
+        </div>
+      </div>`;
+    focusQuietly(card.querySelector('h2'));
+  }
+
+  // ── Keyboard + focus ────────────────────────────────────────────────────
+  // Answering should never require a mouse: A-D (or 1-4) picks a choice,
+  // Enter or → moves on. The handler stays out of the way of real buttons and
+  // of the browser's own shortcuts.
+  document.documentElement.lang = 'en';
+  let focusQuestionOnRender = false;
+
+  document.addEventListener('keydown', (e) => {
+    if (e.metaKey || e.ctrlKey || e.altKey) return;
+    const tag = (e.target.tagName || '').toLowerCase();
+    if (tag === 'input' || tag === 'textarea' || e.target.isContentEditable) return;
+    if (document.getElementById('studentView').hidden) return;
+    // Anything focusable that already responds to Enter or Space owns those
+    // keys: a <summary> opening a lesson, a link, a button. Without this the
+    // shortcut below fires too and skips the question out from under them.
+    const onControl = e.target.closest && e.target.closest('button, summary, a[href], input, select, textarea, [contenteditable]');
+    if (onControl && ['Enter', ' ', 'ArrowRight', 'n', 'N'].includes(e.key)) return;
+
+    const q = QUESTIONS[current];
+    const answered = answeredState[current] !== null;
+    if (q && !answered) {
+      const k = e.key.toLowerCase();
+      const i = /^[1-9]$/.test(k) ? +k - 1 : (/^[a-z]$/.test(k) ? k.charCodeAt(0) - 97 : -1);
+      if (i >= 0 && i < q.choices.length) { e.preventDefault(); answer(i); }
+      return;
+    }
+    if (e.key === 'Enter' || e.key === 'ArrowRight' || e.key.toLowerCase() === 'n') {
+      const next = document.querySelector('.next-btn, .switch-btn');
+      if (next) { e.preventDefault(); next.click(); }
+    }
+  });
+
+  // Move focus where a screen reader should be reading next, without yanking
+  // the page around for sighted users.
+  function focusQuietly(el) {
+    if (!el) return;
+    el.setAttribute('tabindex', '-1');
+    el.focus({ preventScroll: true });
+  }
+
   function renderProgress() {
     const row = document.getElementById('progressRow');
-    const dots = QUESTIONS.map((_, i) => {
-      const cls = answeredState[i] !== null ? 'done' : i === current ? 'current' : '';
+    const answeredCount = Math.min(askedCount, SESSION.length);
+    const dots = Array.from({ length: SESSION.length }, (_, i) => {
+      const cls = i < answeredCount ? 'done' : i === answeredCount ? 'current' : '';
       return `<div class="progress-dot ${cls}"></div>`;
     }).join('');
-    const answeredCount = answeredState.filter(a => a !== null).length;
-    row.innerHTML = dots + `<span class="progress-label">${answeredCount} of ${QUESTIONS.length} answered</span>`;
+    row.innerHTML = `<div class="progress-dots" aria-hidden="true">${dots}</div>` +
+      `<span class="progress-label" role="progressbar" aria-valuenow="${answeredCount}" aria-valuemin="0" aria-valuemax="${SESSION.length}"` +
+      ` aria-label="${answeredCount} of ${SESSION.length} questions answered in this session">${answeredCount} of ${SESSION.length} this session</span>`;
   }
 
   function renderQuestion() {
     renderProgress();
     const card = document.getElementById('studentCard');
-    if (current >= QUESTIONS.length) {
-      card.innerHTML = `
-        <div class="done-card">
-          <div class="done-icon">${ICON_TARGET.replace('width="20" height="20"', 'width="30" height="30"')}</div>
-          <h2>That's all five.</h2>
-          <p>Now for the interesting part: what a tutor would see before your next session, based on how you just did.</p>
-          <button type="button" class="switch-btn" onclick="switchView('tutor')">See the tutor's view</button>
-        </div>`;
+    if (current < 0 || current >= QUESTIONS.length) {
+      renderSessionSummary(card);
       return;
     }
     const q = QUESTIONS[current];
@@ -391,17 +1459,25 @@
     card.innerHTML = `
       <div class="q-subject-row">
         <span class="q-subject">${esc(q.subject)}</span>
-        <span class="q-diff ${q.difficulty}">${q.difficulty}</span>
+        <span class="q-diff ${q.difficulty}"><span class="sr-only">Difficulty: </span>${q.difficulty}</span>
       </div>
-      <p class="q-text${q.passage ? ' passage' : ''}">${esc(q.text)}</p>
-      <div class="choices" id="choicesWrap">
+      ${chosenReason ? `<p class="why-this">${ICON_TARGET.replace('width="20" height="20"', 'width="13" height="13"')} ${esc(chosenReason)}</p>` : ''}
+      ${q.passage ? `<div class="q-passage">${rich(q.passage)}</div>` : ''}
+      ${(q.passages || []).map(p => `<div class="q-passage"><div class="passage-label">${esc(p.label)}</div><p>${rich(p.text)}</p></div>`).join('')}
+      ${q.notes ? `<div class="q-passage"><p>${rich(q.notes.intro)}</p><ul class="notes">${q.notes.items.map(n => `<li>${rich(n)}</li>`).join('')}</ul></div>` : ''}
+      ${q.figure ? renderFigure(q.figure) : ''}
+      <p class="q-text" id="qText">${rich(q.text)}</p>
+      ${q.table ? renderTable(q.table) : ''}
+      <div class="choices" id="choicesWrap" role="group" aria-labelledby="qText">
         ${q.choices.map((c, i) => `
           <button type="button" class="choice" data-i="${i}" onclick="answer(${i})">
-            <span class="choice-label">${String.fromCharCode(65 + i)}</span>
-            <span>${esc(c.t)}</span>
+            <span class="choice-label" aria-hidden="true">${String.fromCharCode(65 + i)}</span>
+            <span><span class="sr-only">${String.fromCharCode(65 + i)}. </span>${rich(c.t)}</span>
           </button>`).join('')}
       </div>
+      <p class="kbd-hint">Press <kbd>A</kbd>–<kbd>${String.fromCharCode(64 + q.choices.length)}</kbd> to answer, <kbd>Enter</kbd> for the next question.</p>
       <div id="feedbackWrap"></div>`;
+    if (focusQuestionOnRender) { focusQuietly(card.querySelector('#qText')); focusQuestionOnRender = false; }
   }
 
   function answer(i) {
@@ -411,80 +1487,100 @@
     const isCorrect = i === correctIdx;
     answeredState[current] = isCorrect;
 
-    if (!live[q.skillId]) live[q.skillId] = { attempts: 0, correct: 0, paceSec: [] };
+    if (!live[q.skillId]) live[q.skillId] = { attempts: 0, correct: 0, paceSec: [], results: [] };
     live[q.skillId].attempts += 1;
     if (isCorrect) live[q.skillId].correct += 1;
     live[q.skillId].paceSec.push(paceSec);
+    live[q.skillId].results.push({ correct: isCorrect, difficulty: q.difficulty, paceSec });
+    lastSkillId = q.skillId;
+    askedCount += 1;
+    sessionLog.push({ index: current, skillId: q.skillId, correct: isCorrect, paceSec, retry: currentIsRetry });
+    if (isCorrect) {
+      retryQueue = retryQueue.filter(r => r.index !== current);
+    } else if (!currentIsRetry && retryQueue.length < SESSION.maxRetries) {
+      retryQueue.push({ index: current, dueAt: askedCount + SESSION.retryGap });
+    }
 
     document.querySelectorAll('#choicesWrap .choice').forEach((btn, idx) => {
       btn.disabled = true;
-      if (idx === correctIdx) btn.classList.add('is-correct');
-      else if (idx === i) btn.classList.add('is-wrong');
+      if (idx === correctIdx) { btn.classList.add('is-correct'); btn.insertAdjacentHTML('beforeend', '<span class="sr-only"> — correct answer</span>'); }
+      else if (idx === i) { btn.classList.add('is-wrong'); btn.insertAdjacentHTML('beforeend', '<span class="sr-only"> — your answer, incorrect</span>'); }
     });
+    const hint = document.querySelector('.kbd-hint');
+    if (hint) hint.remove();
 
     document.getElementById('feedbackWrap').innerHTML = `
-      <div class="feedback">
-        <div class="feedback-verdict ${isCorrect ? 'correct' : 'wrong'}">${isCorrect ? ICON_CHECK + ' Correct' : ICON_X + ' Not quite'}</div>
-        <p class="feedback-rationale">${esc(q.rationale)}</p>
-        <button type="button" class="next-btn" onclick="nextQuestion()">${current === QUESTIONS.length - 1 ? 'See results' : 'Next question'}</button>
+      <div class="feedback" role="status" aria-live="polite">
+        <div class="feedback-verdict" id="verdict" ${isCorrect ? 'correct' : 'wrong'}">${isCorrect ? ICON_CHECK + ' Correct' : ICON_X + ' Not quite'}</div>
+        <p class="feedback-rationale">${rich(q.rationale)}</p>
+        ${q.rationaleTable ? renderTable(q.rationaleTable) : ''}
+        ${glossaryHtml(q, i)}
+        ${isCorrect ? '' : lessonHtml(q.skillId)}
+        <div id="coachSlot"></div>
+        <button type="button" class="next-btn" onclick="nextQuestion()">${askedCount >= SESSION.length && !retryQueue.length ? 'See session summary' : 'Next question'}</button>
       </div>`;
     renderProgress();
+    focusQuietly(document.getElementById('verdict'));
+    fillCoachNote(q, i, isCorrect, paceSec);
   }
 
   function nextQuestion() {
-    current += 1;
+    const next = pickNextQuestion();
+    current = next.index;
+    chosenReason = next.reason;
+    currentIsRetry = !!next.retry;
+    focusQuestionOnRender = true;
     renderQuestion();
   }
 
-  function skillStats(skill) {
-    const seeded = skill.seeded;
-    const l = live[skill.id] || { attempts: 0, correct: 0, paceSec: [] };
-    const attempts = seeded.attempts + l.attempts;
-    const correct = seeded.correct + l.correct;
-    const pct = attempts ? Math.round((correct / attempts) * 100) : 0;
-    return { attempts, correct, pct, livePace: l.paceSec };
-  }
-
   function renderTutor() {
-    const stats = SKILLS.map(s => ({ skill: s, ...skillStats(s) }));
-    const totalAnswered = stats.reduce((sum, s) => sum + s.attempts, 0);
-    const totalCorrect = stats.reduce((sum, s) => sum + s.correct, 0);
+    const stats = SKILLS.map(s => ({ skill: s, ...skillSignals(s), priority: priority(s) }));
+    const totalAnswered = stats.reduce((sum, s) => sum + s.mastery.attempts, 0);
+    const totalCorrect = stats.reduce((sum, s) => sum + s.mastery.correct, 0);
     const overallAccuracy = totalAnswered ? Math.round((totalCorrect / totalAnswered) * 100) : 0;
-    const assessed = stats.filter(s => s.attempts > 0).length;
+    const assessed = stats.filter(s => s.mastery.attempts > 0).length;
+    const answeredToday = stats.reduce((sum, s) => sum + s.mastery.liveAttempts, 0);
 
     const bySubject = {};
     stats.forEach(s => {
-      const subj = s.skill.subject;
       const l = live[s.skill.id];
-      if (l && l.paceSec.length) {
-        (bySubject[subj] = bySubject[subj] || []).push(...l.paceSec);
-      }
+      if (l && l.results.length) (bySubject[s.skill.subject] = bySubject[s.skill.subject] || []).push(...l.results.map(r => r.paceSec));
     });
     const paceBadges = Object.keys(bySubject).map(subject => {
       const times = bySubject[subject];
       const avg = Math.round(times.reduce((a, b) => a + b, 0) / times.length);
-      const budget = PACE_BUDGET[subject];
-      const ratio = avg / budget;
-      const cls = ratio <= 1 ? 'good' : ratio <= 1.4 ? 'ok' : 'slow';
-      const label = ratio <= 1 ? 'on pace' : ratio <= 1.4 ? 'a bit slow' : 'well over pace';
+      const ratio = avg / PACE_BUDGET[subject];
+      const cls = ratio <= 1 ? 'good' : ratio <= MODEL.slowRatio ? 'ok' : 'slow';
+      const label = ratio <= 1 ? 'on pace' : ratio <= MODEL.slowRatio ? 'a bit slow' : 'well over pace';
       return `<span class="pace-badge ${cls}">${ICON_CLOCK} ${esc(subject)}: ${label} <span style="font-variant-numeric:tabular-nums">(${avg}s avg)</span></span>`;
     }).join('');
 
-    const sorted = [...stats].filter(s => s.attempts > 0).sort((a, b) => a.pct - b.pct);
-    const masteryRows = sorted.map(s => {
-      const tier = s.pct < 40 ? 'weak' : s.pct < 75 ? 'medium' : 'strong';
+    const ranked = stats.filter(s => s.mastery.attempts > 0).sort((a, b) => b.priority - a.priority);
+    const masteryRows = ranked.map(s => {
+      const pct = Math.round(s.mastery.value * 100);
+      const tier = pct < 40 ? 'weak' : pct < 75 ? 'medium' : 'strong';
+      const chips = s.chips.map(c => `<span class="chip${c.tone ? ' ' + c.tone : ''}">${esc(c.text)}</span>`).join('');
       return `
         <div class="mastery-row">
           <div class="mastery-label">
             <div class="mastery-name">${esc(s.skill.name)}</div>
-            <div class="mastery-meta">${esc(s.skill.subject)} · ${s.attempts} attempt${s.attempts === 1 ? '' : 's'}</div>
+            <div class="mastery-meta">${esc(s.skill.subject)} · ${s.mastery.correct} of ${s.mastery.attempts} correct</div>
+            ${chips ? `<div class="mastery-chips">${chips}</div>` : ''}
           </div>
-          <div class="mastery-track"><div class="mastery-fill ${tier}" style="width:${s.pct}%"></div></div>
-          <span class="mastery-pct">${s.pct}%</span>
+          <div class="mastery-track"><div class="mastery-fill ${tier}" style="width:${pct}%"></div></div>
+          <span class="mastery-pct">${pct}%</span>
         </div>`;
     }).join('');
 
-    const weakest = sorted[0];
+    const focus = ranked[0];
+    const focusNote = focus ? (() => {
+      const m = focus.mastery, parts = [`${Math.round(m.value * 100)}% mastery over ${m.attempts} attempts`];
+      if (m.liveAttempts) parts.push(`${m.liveCorrect} of ${m.liveAttempts} in this session`);
+      if (focus.pace && focus.pace.rushedMiss) parts.push(`one miss in under ${MODEL.rushedSec}s, which reads as a guess`);
+      else if (focus.pace && focus.pace.ratio > MODEL.slowRatio) parts.push(`averaging ${focus.pace.avgSec}s against a ${PACE_BUDGET[focus.skill.subject]}s budget`);
+      if (m.confidence < MODEL.thinEvidence) parts.push('still thin evidence, so confirm it early in the session');
+      return parts.join(' · ') + '.';
+    })() : '';
 
     document.getElementById('tutorCard').innerHTML = `
       <div class="brief-name">Travis Feng's Student Brief</div>
@@ -498,20 +1594,22 @@
 
       ${paceBadges ? `<div class="pace-row">${paceBadges}</div>` : ''}
 
-      <div class="section-title">Weakest Subskills</div>
+      <div class="section-title">Session Priorities</div>
       ${masteryRows}
+      <p class="model-note">Mastery is weighted by recency and question difficulty, and a thin record sits near 50% until there's evidence either way. Order is how far from mastered, weighted by how much evidence backs it, with how often the skill appears on the test breaking near-ties${answeredToday ? `, including the ${answeredToday} answered just now` : ''}.</p>
 
-      ${weakest ? `
+      ${focus ? `
       <div class="focus-callout">
         <div class="focus-icon">${ICON_TARGET}</div>
         <div>
           <div class="focus-title">Focus next on</div>
-          <div class="focus-name">${esc(weakest.skill.name)}</div>
-          <div class="focus-note">${weakest.pct}% accuracy over ${weakest.attempts} attempts. A tutor opens the next session already knowing this, instead of guessing where to start.</div>
+          <div class="focus-name">${esc(focus.skill.name)}</div>
+          <div class="focus-note">${esc(focusNote)} A tutor opens the next session already knowing this, instead of guessing where to start.</div>
+          ${LESSONS[focus.skill.id] ? `<div class="focus-lesson"><span class="lesson-tag">Lesson to assign</span> ${esc(LESSONS[focus.skill.id].title)}</div>` : ''}
         </div>
       </div>` : ''}
     `;
   }
 
-  renderQuestion();
+  startSession();
 </script>
