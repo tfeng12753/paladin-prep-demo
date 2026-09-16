@@ -291,6 +291,12 @@
     overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0;
   }
   .progress-dots { display: flex; align-items: center; gap: .5rem; }
+  .pattern-row { padding: .55rem 0; border-bottom: 1px solid var(--border); }
+  .pattern-row:last-of-type { border-bottom: none; }
+  .pattern-title { font-size: .88rem; font-weight: 600; color: var(--dark); }
+  .pattern-detail { font-size: .82rem; line-height: 1.55; color: var(--text-muted); margin-top: .15rem; }
+  .estimator-readout { display: flex; flex-wrap: wrap; gap: .1rem .9rem; font-size: .76rem; color: var(--text-muted); margin: .35rem 0 .5rem; }
+  .estimator-readout b { color: var(--dark); font-variant-numeric: tabular-nums; }
   .resume-note {
     font-size: .8rem; color: var(--text-muted); margin: 0 0 .9rem;
     padding: .5rem .75rem; background: var(--bg-alt); border-radius: .4rem; border: 1px solid var(--border);
@@ -1089,28 +1095,164 @@
   // on the test wins a close call, but it can never push a 55% skill above a
   // 21% one, which is what a tutor reading the list top to bottom expects.
   function priority(skill) {
-    const m = mastery(skill);
+    const m = estimate(skill);
     // A skill untouched for weeks is not "known", it is unmeasured: nudge it up
     // the list so the next session checks rather than assumes. Half of the
     // nudge is reached at STALE_HALF_LIFE days.
     const days = m.staleDays;
     const staleness = days === null ? 0 : 1 - Math.pow(0.5, days / STALE_HALF_LIFE);
-    return (1 - m.value) * (0.55 + 0.45 * m.confidence) * (0.85 + 0.15 * (skill.weight || 1)) * (1 + 0.3 * staleness);
+    // Disagreement between the estimators is itself a reason to ask: it means
+    // the evidence so far supports more than one story about this skill.
+    return (1 - m.value) * (0.55 + 0.45 * m.confidence) * (0.85 + 0.15 * (skill.weight || 1))
+      * (1 + 0.3 * staleness) * (1 + 0.5 * m.spread);
   }
 
   function skillSignals(skill) {
-    const m = mastery(skill), pace = paceSignal(skill), chips = [];
+    const m = mastery(skill), est = estimate(skill), pace = paceSignal(skill), chips = [];
     if (m.liveAttempts) chips.push({ text: `${m.liveCorrect} of ${m.liveAttempts} today` });
     if (pace && pace.rushedMiss) chips.push({ text: 'missed in under ' + MODEL.rushedSec + 's', tone: 'warn' });
     else if (pace && pace.ratio > MODEL.slowRatio) chips.push({ text: `${pace.avgSec}s vs ${PACE_BUDGET[skill.subject]}s budget`, tone: 'warn' });
     if (m.confidence < MODEL.thinEvidence) chips.push({ text: 'thin evidence' });
     if (m.staleDays !== null && m.staleDays >= 7) chips.push({ text: `last practiced ${Math.floor(m.staleDays)}d ago` });
-    if (m.liveAttempts >= 2 && m.seededRate !== null) {
-      const liveRate = m.liveCorrect / m.liveAttempts;
-      if (liveRate - m.seededRate >= 0.25) chips.push({ text: 'improving', tone: 'good' });
-      else if (m.seededRate - liveRate >= 0.25) chips.push({ text: 'slipping', tone: 'warn' });
+    // Thresholds are set so these stay rare enough to mean something: a flag
+    // on nearly every row is decoration, not signal.
+    if (est.trend >= 0.4) chips.push({ text: 'trending up', tone: 'good' });
+    else if (est.trend <= -0.4) chips.push({ text: 'trending down', tone: 'warn' });
+    if (est.spread >= 0.16) chips.push({ text: 'estimates disagree' });
+    return { mastery: m, estimate: est, pace, chips };
+  }
+
+  // ── Estimators ──────────────────────────────────────────────────────────
+  // Four views of the same evidence, each wrong in a different way. Averaging
+  // them is not the point: where they DISAGREE, the estimate is unsettled, and
+  // an unsettled skill is worth measuring rather than assuming.
+  //
+  //   weighted posterior  what mastery() already does: recency- and
+  //                       difficulty-weighted accuracy with a prior. Steady,
+  //                       but a lucky guess looks like knowledge.
+  //   knowledge tracing   models slipping and guessing explicitly. Measured
+  //                       against the weighted average it is more decisive at
+  //                       both ends -- lower on a bad record, higher on a good
+  //                       one -- and it reacts to a run rather than to a rate.
+  //                       That decisiveness is why it is averaged with the
+  //                       others rather than trusted alone.
+  //   ability model       Elo/Rasch: scores the student against question
+  //                       difficulty, so three easy wins and three hard wins
+  //                       are not the same evidence.
+  //   trend               direction of travel, which an average hides.
+
+  // A four-choice question is answered correctly 25% of the time by luck, and
+  // a student who knows the skill still slips sometimes. `learn` is kept low:
+  // at textbook values this estimator saturates near certainty after a handful
+  // of questions, which is not a claim a practice app can honestly make.
+  const BKT = { init: 0.30, learn: 0.08, slip: 0.12, guess: 0.25, floor: 0.02, ceiling: 0.97 };
+  function knowledgeTracing(skill) {
+    let p = BKT.init;
+    skillEvidence(skill).forEach(e => {
+      const pCorrect = p * (1 - BKT.slip) + (1 - p) * BKT.guess;
+      if (pCorrect <= 0 || pCorrect >= 1) return;
+      p = e.correct ? (p * (1 - BKT.slip)) / pCorrect
+                    : (p * BKT.slip) / (1 - pCorrect);
+      p = p + (1 - p) * BKT.learn;           // the attempt itself teaches something
+      p = Math.min(BKT.ceiling, Math.max(BKT.floor, p));
+    });
+    return p;
+  }
+
+  // Elo with question difficulty as the opponent's rating, read as a Rasch
+  // model: the chance of getting a medium question right next.
+  const ELO = { start: 0, k: 0.45, rating: { easy: -0.8, medium: 0, hard: 0.9 } };
+  function abilityModel(skill) {
+    let theta = ELO.start;
+    skillEvidence(skill).forEach(e => {
+      const b = ELO.rating[e.difficulty] ?? 0;
+      const expected = 1 / (1 + Math.exp(-(theta - b)));
+      theta += ELO.k * ((e.correct ? 1 : 0) - expected);
+    });
+    return theta;
+  }
+  function predictedCorrect(skill, difficulty = 'medium') {
+    return 1 / (1 + Math.exp(-(abilityModel(skill) - (ELO.rating[difficulty] ?? 0))));
+  }
+
+  // Recent performance against earlier performance -- from attempts actually
+  // made on this device, which are the only ones with a real order. Seeded
+  // history is a summary, and deriving a direction from it invents one.
+  function trend(skill) {
+    const events = (live[skill.id] ? live[skill.id].results : []).slice();
+    if (events.length < 6) return 0;
+    const half = Math.floor(events.length / 2);
+    const rate = list => list.length ? list.filter(e => e.correct).length / list.length : 0;
+    return rate(events.slice(half)) - rate(events.slice(0, half));
+  }
+
+  // The ensemble, plus how much the estimators disagree.
+  function estimate(skill) {
+    const beta = mastery(skill);
+    if (!beta.attempts) {
+      return { value: 0.5, spread: 0, parts: { posterior: 0.5, tracing: 0.5, ability: 0.5 },
+        trend: 0, confidence: beta.confidence, staleDays: beta.staleDays, base: beta };
     }
-    return { mastery: m, pace, chips };
+    const parts = {
+      posterior: beta.value,
+      tracing: knowledgeTracing(skill),
+      ability: predictedCorrect(skill, 'medium'),
+    };
+    const values = Object.values(parts);
+    const value = values.reduce((a, b) => a + b, 0) / values.length;
+    const spread = Math.sqrt(values.reduce((sum, v) => sum + (v - value) ** 2, 0) / values.length);
+    return { value, spread, parts, trend: trend(skill), confidence: beta.confidence, staleDays: beta.staleDays, base: beta };
+  }
+
+  // ── Error patterns ──────────────────────────────────────────────────────
+  // Cross-skill signals a per-skill score can't see. Each one only fires with
+  // enough evidence behind it, and says how much evidence that was.
+  function errorPatterns() {
+    const all = [];
+    SKILLS.forEach(s => (live[s.id] ? live[s.id].results : []).forEach(r => all.push({ ...r, skill: s })));
+    if (all.length < 4) return [];
+    const rate = list => list.length ? list.filter(r => r.correct).length / list.length : null;
+    const pct = v => Math.round(v * 100);
+    const out = [];
+
+    const misses = all.filter(r => !r.correct);
+    const rushed = misses.filter(r => r.paceSec < MODEL.rushedSec);
+    if (rushed.length >= 2 && rushed.length / misses.length >= 0.4) {
+      out.push({ title: 'Rushing under pressure',
+        detail: `${rushed.length} of ${misses.length} wrong answers came in under ${MODEL.rushedSec} seconds. The knowledge may be there; the habit of reading the whole question isn't yet.` });
+    }
+
+    const hard = all.filter(r => r.difficulty === 'hard');
+    const easier = all.filter(r => r.difficulty !== 'hard');
+    if (hard.length >= 3 && easier.length >= 3 && rate(hard) <= 0.4 && rate(easier) >= 0.7) {
+      out.push({ title: 'A difficulty cliff, not a knowledge gap',
+        detail: `${pct(rate(easier))}% on easy and medium questions against ${pct(rate(hard))}% on hard ones. The fundamentals hold; multi-step versions are where it breaks.` });
+    }
+
+    const withFigure = all.filter(r => r.figure);
+    const textOnly = all.filter(r => !r.figure);
+    if (withFigure.length >= 3 && textOnly.length >= 3 && rate(textOnly) - rate(withFigure) >= 0.2) {
+      out.push({ title: 'Reading the figure is the bottleneck',
+        detail: `${pct(rate(withFigure))}% on questions with a graph or diagram versus ${pct(rate(textOnly))}% without one. Practice pulling values off the display before solving.` });
+    }
+
+    const slowButRight = all.filter(r => r.correct && r.paceSec > PACE_BUDGET[r.skill.subject] * MODEL.slowRatio);
+    if (slowButRight.length >= 3) {
+      out.push({ title: 'Accurate but slow',
+        detail: `${slowButRight.length} correct answers took well over the pace budget. That's a fluency problem rather than a knowledge one — it costs questions at the end of a section.` });
+    }
+
+    const bySubject = {};
+    all.forEach(r => (bySubject[r.skill.subject] = bySubject[r.skill.subject] || []).push(r));
+    const subjects = Object.keys(bySubject).filter(s => bySubject[s].length >= 4);
+    if (subjects.length === 2) {
+      const [a, b] = subjects.map(s => ({ subject: s, rate: rate(bySubject[s]) })).sort((x, y) => y.rate - x.rate);
+      if (a.rate - b.rate >= 0.2) {
+        out.push({ title: `${b.subject} is the weaker half`,
+          detail: `${pct(a.rate)}% in ${a.subject} against ${pct(b.rate)}% in ${b.subject}. Session time is better spent on the gap than split evenly.` });
+      }
+    }
+    return out;
   }
 
   // ── Feedback provider ───────────────────────────────────────────────────
@@ -1392,7 +1534,7 @@
     lastSkillId = null;
     currentIsRetry = false;
     masteryAtStart = {};
-    SKILLS.forEach(s => { masteryAtStart[s.id] = mastery(s).value; });
+    SKILLS.forEach(s => { masteryAtStart[s.id] = estimate(s).value; });
     sessionStartedAt = Date.now();
     // Questions reset each session, so a skill can be revisited in a later
     // session -- spacing across sessions is the other half of the same idea.
@@ -1429,7 +1571,7 @@
 
     const scored = pool.map(({ q, i }) => {
       const skill = SKILLS.find(s => s.id === q.skillId);
-      const m = mastery(skill);
+      const m = estimate(skill);
       const target = m.value < 0.4 ? 0 : m.value < 0.7 ? 1 : 2;
       const fit = 1 - Math.abs(DIFFICULTY_RANK[q.difficulty] - target) * 0.22;
       const variety = q.skillId === lastSkillId ? 0.75 : 1;
@@ -1440,7 +1582,7 @@
     const pct = Math.round(top.m.value * 100);
     const weakest = [...scored].sort((a, b) => priority(b.skill) - priority(a.skill))[0];
     const first = askedCount === 0;
-    const rebuilding = top.m.liveAttempts > 0 && top.m.liveCorrect < top.m.liveAttempts;
+    const rebuilding = top.m.base.liveAttempts > 0 && top.m.base.liveCorrect < top.m.base.liveAttempts;
     const rotated = lastSkillId && weakest.skill.id === lastSkillId && top.skill.id !== lastSkillId;
     let reason;
     if (rebuilding) {
@@ -1472,7 +1614,7 @@
     const accuracy = firstTries.length ? Math.round((firstTries.filter(e => e.correct).length / firstTries.length) * 100) : 0;
 
     const moved = SKILLS
-      .map(s => ({ skill: s, before: masteryAtStart[s.id] ?? mastery(s).value, after: mastery(s).value }))
+      .map(s => ({ skill: s, before: masteryAtStart[s.id] ?? estimate(s).value, after: estimate(s).value }))
       .map(m => ({ ...m, delta: Math.round(m.after * 100) - Math.round(m.before * 100) }))
       .filter(m => sessionLog.some(e => e.skillId === m.skill.id))
       .sort((a, b) => b.delta - a.delta);
@@ -1505,7 +1647,7 @@
           <div>
             <div class="focus-title">Next session should open with</div>
             <div class="focus-name">${esc(next.name)}</div>
-            <div class="focus-note">${Math.round(mastery(next).value * 100)}% mastery over ${mastery(next).attempts} attempts.</div>
+            <div class="focus-note">${Math.round(estimate(next).value * 100)}% mastery over ${mastery(next).attempts} attempts.</div>
             ${LESSONS[next.id] ? `<div class="focus-lesson"><span class="lesson-tag">Read before next time</span> ${esc(LESSONS[next.id].title)}</div>` : ''}
           </div>
         </div>` : ''}
@@ -1614,7 +1756,7 @@
     live[q.skillId].attempts += 1;
     if (isCorrect) live[q.skillId].correct += 1;
     live[q.skillId].paceSec.push(paceSec);
-    live[q.skillId].results.push({ correct: isCorrect, difficulty: q.difficulty, paceSec, at: Date.now() });
+    live[q.skillId].results.push({ correct: isCorrect, difficulty: q.difficulty, paceSec, at: Date.now(), figure: !!q.figure });
     lastSkillId = q.skillId;
     askedCount += 1;
     sessionLog.push({ index: current, skillId: q.skillId, correct: isCorrect, paceSec, retry: currentIsRetry });
@@ -1681,7 +1823,7 @@
 
     const ranked = stats.filter(s => s.mastery.attempts > 0).sort((a, b) => b.priority - a.priority);
     const masteryRows = ranked.map(s => {
-      const pct = Math.round(s.mastery.value * 100);
+      const pct = Math.round(s.estimate.value * 100);
       const tier = pct < 40 ? 'weak' : pct < 75 ? 'medium' : 'strong';
       const chips = s.chips.map(c => `<span class="chip${c.tone ? ' ' + c.tone : ''}">${esc(c.text)}</span>`).join('');
       return `
@@ -1698,7 +1840,7 @@
 
     const focus = ranked[0];
     const focusNote = focus ? (() => {
-      const m = focus.mastery, parts = [`${Math.round(m.value * 100)}% mastery over ${m.attempts} attempts`];
+      const m = focus.mastery, parts = [`${Math.round(focus.estimate.value * 100)}% mastery over ${m.attempts} attempts`];
       if (m.liveAttempts) parts.push(`${m.liveCorrect} of ${m.liveAttempts} in this session`);
       if (focus.pace && focus.pace.rushedMiss) parts.push(`one miss in under ${MODEL.rushedSec}s, which reads as a guess`);
       else if (focus.pace && focus.pace.ratio > MODEL.slowRatio) parts.push(`averaging ${focus.pace.avgSec}s against a ${PACE_BUDGET[focus.skill.subject]}s budget`);
@@ -1720,7 +1862,8 @@
 
       <div class="section-title">Session Priorities</div>
       ${masteryRows}
-      <p class="model-note">Mastery is weighted by recency and question difficulty, and a thin record sits near 50% until there's evidence either way. Order is how far from mastered, weighted by how much evidence backs it, with how often the skill appears on the test breaking near-ties${answeredToday ? `, including the ${answeredToday} answered just now` : ''}.</p>
+      ${(() => { const pats = errorPatterns(); return pats.length ? `<div class="section-title" style="margin-top:1.6rem">Patterns across skills</div>${pats.map(p => `<div class="pattern-row"><div class="pattern-title">${esc(p.title)}</div><div class="pattern-detail">${esc(p.detail)}</div></div>`).join('')}` : ''; })()}
+      <p class="model-note">Each percentage is three estimators averaged — weighted history, knowledge tracing (which accounts for lucky guesses and slips), and an ability model that scores you against question difficulty. A thin record sits near 50% until there's evidence either way. Order is how far from mastered, weighted by how much evidence backs it, with how often the skill appears on the test breaking near-ties${answeredToday ? `, including the ${answeredToday} answered just now` : ''}.</p>
 
       ${focus ? `
       <div class="focus-callout">
@@ -1728,6 +1871,7 @@
         <div>
           <div class="focus-title">Focus next on</div>
           <div class="focus-name">${esc(focus.skill.name)}</div>
+          <div class="estimator-readout">${['posterior', 'tracing', 'ability'].map(k => `<span><b>${Math.round(focus.estimate.parts[k] * 100)}%</b> ${k === 'posterior' ? 'weighted history' : k === 'tracing' ? 'knowledge tracing' : 'ability model'}</span>`).join('')}</div>
           <div class="focus-note">${esc(focusNote)} A tutor opens the next session already knowing this, instead of guessing where to start.</div>
           ${LESSONS[focus.skill.id] ? `<div class="focus-lesson"><span class="lesson-tag">Lesson to assign</span> ${esc(LESSONS[focus.skill.id].title)}</div>` : ''}
         </div>
