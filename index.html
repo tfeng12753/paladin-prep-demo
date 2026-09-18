@@ -529,7 +529,12 @@
       const shiftX = { c: '-50%', w: '0%', e: '-100%' }[l.anchor || 'c'];
       const pos = `left:${((l.x - vx) / vw * 100).toFixed(3)}%;top:${((l.y - vy) / vh * 100).toFixed(3)}%;` +
                   `transform:translate(${shiftX},-50%);font-size:calc(100cqw * ${l.size || 15} / ${vw})`;
-      const content = l.text !== undefined ? `<span class="fig-text">${esc(l.text)}</span>` : renderMath(l.tex);
+      // A label that is only a number renders as math wherever it came from, so
+      // an axis tick reads the same on every chart; only word labels stay text.
+      const numeric = l.text !== undefined && /^[−-]?\d+(\.\d+)?$/.test(l.text.trim());
+      const content = l.text !== undefined && !numeric
+        ? `<span class="fig-text">${esc(l.text)}</span>`
+        : renderMath(numeric ? l.text.trim().replace('−', '-') : l.tex);
       return `<span class="fig-label" style="${pos}">${content}</span>`;
     }).join('');
     const html = `<figure class="q-figure">${fig.caption ? `<figcaption class="fig-caption">${esc(fig.caption)}</figcaption>` : ''}<div class="fig-box" role="img" aria-label="${esc(fig.alt)}" style="--fig-max:${fig.maxWidth || 230}px">${fig.svg}${labels}</div></figure>`;
